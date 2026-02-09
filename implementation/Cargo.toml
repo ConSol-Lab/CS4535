@@ -1,0 +1,31 @@
+[package]
+name = "implementation"
+version = "0.2.2"
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "The implementation of propagators of the Pumpkin constraint programming solver."
+
+[lints]
+workspace = true
+
+[dependencies]
+pumpkin-core = { version = "0.2.2", path = "../pumpkin-crates/core" }
+pumpkin-checking = { version = "0.2.2", path = "../pumpkin-crates/checking" }
+enumset = "1.1.2"
+bitfield-struct = "0.9.2"
+convert_case = "0.8.0"
+clap = { version = "4.5.40", optional = true, features=["derive"]}
+more-asserts = { version = "0.3.1" }
+
+[dev-dependencies]
+pumpkin-constraints = { version = "0.2.2", path = "../pumpkin-crates/constraints" }
+drcp-format = { version = "0.3.0", path = "../drcp-format" }
+derive_more = { version = "2.1.1", features = ["from"] }
+fzn-rs = { version = "0.1.0", path = "../fzn-rs" }
+thiserror = "2.0.16"
+anyhow = "1.0.97"
+
+[features]
+clap = ["dep:clap", "pumpkin-core/clap"]

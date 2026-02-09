@@ -1,0 +1,103 @@
+use std::marker::PhantomData;
+
+use pumpkin_core::declare_inference_label;
+use pumpkin_core::proof::ConstraintTag;
+use pumpkin_core::proof::InferenceCode;
+use pumpkin_core::propagation::InferenceCheckers;
+use pumpkin_core::propagation::Priority;
+use pumpkin_core::propagation::PropagationContext;
+use pumpkin_core::propagation::Propagator;
+use pumpkin_core::propagation::PropagatorConstructor;
+use pumpkin_core::propagation::PropagatorConstructorContext;
+#[allow(unused, reason = "Will be used in the assignments")]
+use pumpkin_core::propagation::ReadDomains;
+use pumpkin_core::results::PropagationStatusCP;
+use pumpkin_core::variables::IntegerVariable;
+
+use crate::propagators::linear::LinearChecker;
+
+declare_inference_label!(LinearBounds);
+
+#[derive(Clone, Debug)]
+pub struct LinearConstructor<Var> {
+    pub x: Box<[Var]>,
+    pub bound: i32,
+    pub constraint_tag: ConstraintTag,
+    pub conflict_detection_only: bool,
+}
+
+impl<Var> PropagatorConstructor for LinearConstructor<Var>
+where
+    Var: IntegerVariable + 'static,
+{
+    type PropagatorImpl = LinearLessOrEqualPropagator<Var>;
+
+    fn create(self, _context: PropagatorConstructorContext) -> Self::PropagatorImpl {
+        // Register for events
+
+        LinearLessOrEqualPropagator {
+            x: self.x.to_vec(),
+            // TODO
+            conflict_detection_only: self.conflict_detection_only,
+            _inference_code: InferenceCode::new(self.constraint_tag, LinearBounds),
+            phantom_data: PhantomData,
+        }
+    }
+
+    fn add_inference_checkers(&self, mut checkers: InferenceCheckers<'_>) {
+        checkers.add_inference_checker(
+            InferenceCode::new(self.constraint_tag, LinearBounds),
+            Box::new(LinearChecker {
+                x: self.x.to_vec(),
+                bound: self.bound,
+            }),
+        );
+    }
+}
+
+/// Propagator for the constraint `\sum x_i <= c`.
+#[derive(Clone, Debug)]
+pub struct LinearLessOrEqualPropagator<Var> {
+    pub x: Vec<Var>,
+    // TODO
+    conflict_detection_only: bool,
+    _inference_code: InferenceCode,
+    /// Here to avoid build warnings
+    phantom_data: PhantomData<Var>,
+}
+
+impl<Var: 'static> Propagator for LinearLessOrEqualPropagator<Var>
+where
+    Var: IntegerVariable,
+{
+    fn priority(&self) -> Priority {
+        Priority::High
+    }
+
+    fn name(&self) -> &str {
+        "LinearLeq"
+    }
+
+    fn propagate_from_scratch(&self, mut _context: PropagationContext) -> PropagationStatusCP {
+        if self.conflict_detection_only {
+            // TODO: Only perform conflict detection
+
+            #[allow(
+                unreachable_code,
+                reason = "Should not be a warning after implementing"
+            )]
+            return todo!();
+        }
+
+        todo!()
+    }
+}
+
+#[allow(deprecated, reason = "Will be refactored")]
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        // TODO: create test cases here
+    }
+}
