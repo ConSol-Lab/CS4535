@@ -69,6 +69,10 @@ pub(crate) fn add_cumulative_propagator(
     let tasks = cumulative
         .tasks
         .iter()
+        .filter(|task| match &task.start_time.0 {
+            fzn_rs::VariableExpr::Identifier(ident) => variables.contains_key(ident),
+            fzn_rs::VariableExpr::Constant(_) => true,
+        })
         .map(|task| {
             let var = match &task.start_time.0 {
                 fzn_rs::VariableExpr::Identifier(ident) => *variables.get(ident).unwrap(),
