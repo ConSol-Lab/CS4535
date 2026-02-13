@@ -104,7 +104,7 @@ constraint
     % Makespan constraints
     %
 constraint
-   forall ( i in Tasks where i < num_reduced /\ suc[i] == {} )
+   forall ( i in Tasks where i < num_reduced )
    (
       Start[i] + d[i] <= Objective
    );
