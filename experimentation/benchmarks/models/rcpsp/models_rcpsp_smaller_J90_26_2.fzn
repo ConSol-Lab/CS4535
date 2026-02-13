@@ -104,7 +104,7 @@ array [1..11] of var int: X_INTRODUCED_119_ ::var_is_introduced  = [X_INTRODUCED
 array [1..10] of var int: X_INTRODUCED_122_ ::var_is_introduced  = [X_INTRODUCED_17_,X_INTRODUCED_18_,X_INTRODUCED_20_,X_INTRODUCED_21_,X_INTRODUCED_24_,X_INTRODUCED_25_,X_INTRODUCED_26_,X_INTRODUCED_27_,X_INTRODUCED_28_,X_INTRODUCED_29_];
 array [1..11] of var int: X_INTRODUCED_125_ ::var_is_introduced  = [X_INTRODUCED_17_,X_INTRODUCED_18_,X_INTRODUCED_19_,X_INTRODUCED_20_,X_INTRODUCED_21_,X_INTRODUCED_22_,X_INTRODUCED_23_,X_INTRODUCED_24_,X_INTRODUCED_26_,X_INTRODUCED_27_,X_INTRODUCED_28_];
 array [1..9] of var int: X_INTRODUCED_128_ ::var_is_introduced  = [X_INTRODUCED_17_,X_INTRODUCED_18_,X_INTRODUCED_19_,X_INTRODUCED_22_,X_INTRODUCED_25_,X_INTRODUCED_26_,X_INTRODUCED_27_,X_INTRODUCED_28_,X_INTRODUCED_29_];
-array [1..15] of var int: X_INTRODUCED_130_ ::var_is_introduced  = [X_INTRODUCED_16_,X_INTRODUCED_17_,X_INTRODUCED_18_,X_INTRODUCED_19_,X_INTRODUCED_20_,X_INTRODUCED_21_,X_INTRODUCED_22_,X_INTRODUCED_23_,X_INTRODUCED_24_,X_INTRODUCED_25_,X_INTRODUCED_26_,X_INTRODUCED_27_,X_INTRODUCED_28_,X_INTRODUCED_29_,Objective];
+array [1..15] of var int: X_INTRODUCED_136_ ::var_is_introduced  = [X_INTRODUCED_16_,X_INTRODUCED_17_,X_INTRODUCED_18_,X_INTRODUCED_19_,X_INTRODUCED_20_,X_INTRODUCED_21_,X_INTRODUCED_22_,X_INTRODUCED_23_,X_INTRODUCED_24_,X_INTRODUCED_25_,X_INTRODUCED_26_,X_INTRODUCED_27_,X_INTRODUCED_28_,X_INTRODUCED_29_,Objective];
 constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_16_,X_INTRODUCED_20_],-5);
 constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_16_,X_INTRODUCED_25_],-5);
 constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_17_,X_INTRODUCED_19_],-2);
@@ -120,4 +120,18 @@ constraint pumpkin_cumulative(X_INTRODUCED_119_,X_INTRODUCED_118_,X_INTRODUCED_1
 constraint pumpkin_cumulative(X_INTRODUCED_122_,[2,8,10,10,2,1,8,4,10,8],[5,2,7,1,9,1,8,1,2,7],37);
 constraint pumpkin_cumulative(X_INTRODUCED_125_,X_INTRODUCED_124_,X_INTRODUCED_123_,31);
 constraint pumpkin_cumulative(X_INTRODUCED_128_,[2,8,6,7,1,8,4,10,8],[7,2,2,5,8,3,6,6,8],34);
-solve :: int_search(X_INTRODUCED_130_,smallest,indomain_min,complete) minimize Objective;
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_16_,Objective],-5);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_17_,Objective],-2);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_18_,Objective],-8);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_19_,Objective],-6);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_20_,Objective],-10);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_21_,Objective],-10);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_22_,Objective],-7);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_23_,Objective],-7);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_24_,Objective],-2);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_25_,Objective],-1);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_26_,Objective],-8);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_27_,Objective],-4);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_28_,Objective],-10);
+constraint int_lin_le(X_INTRODUCED_109_,[X_INTRODUCED_29_,Objective],-8);
+solve :: int_search(X_INTRODUCED_136_,smallest,indomain_min,complete) minimize Objective;

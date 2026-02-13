@@ -13,6 +13,7 @@ array [1..5] of var int: Start:: output_array([1..5]) = [X_INTRODUCED_16_,X_INTR
 array [1..5] of var int: X_INTRODUCED_28_ ::var_is_introduced  = [X_INTRODUCED_16_,X_INTRODUCED_17_,X_INTRODUCED_18_,X_INTRODUCED_19_,Objective];
 constraint int_lin_le(X_INTRODUCED_24_,[X_INTRODUCED_17_,X_INTRODUCED_19_],-9);
 constraint int_lin_le(X_INTRODUCED_24_,[X_INTRODUCED_16_,Objective],-7);
+constraint int_lin_le(X_INTRODUCED_24_,[X_INTRODUCED_17_,Objective],-9);
 constraint int_lin_le(X_INTRODUCED_24_,[X_INTRODUCED_18_,Objective],-3);
 constraint int_lin_le(X_INTRODUCED_24_,[X_INTRODUCED_19_,Objective],-3);
 solve :: int_search(X_INTRODUCED_28_,smallest,indomain_min,complete) minimize Objective;
