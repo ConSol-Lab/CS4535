@@ -128,6 +128,8 @@ impl PropagatorConstructorContext<'_> {
     /// Indicate that the constructor is deliberately not registering the propagator to be enqueued
     /// at any time.
     ///
+    /// Note that this is likely not what you want; this should only be used in specific cases.
+    ///
     /// If this is called and later a registration happens, then the registration will still go
     /// through. Calling this function only prevents the crash if no registration happens.
     pub fn will_not_register_any_events(&mut self) {
@@ -264,7 +266,7 @@ impl Drop for PropagatorConstructorContext<'_> {
 
         if !did_register {
             panic!(
-                "Propagator did not register to be enqueued. If this is intentional, call PropagatorConstructorContext::will_not_register_any_events()."
+                "Propagator did not register to be enqueued. This is likely not intentional, please think about this carefully. If you are certain that you do not need to register for domain events, then call PropagatorConstructorContext::will_not_register_any_events()."
             );
         }
     }
