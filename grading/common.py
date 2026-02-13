@@ -15,6 +15,7 @@ def build_test_cases(crate: str = "implementation"):
                 "cargo",
                 "+nightly",
                 "build",
+                "--release",
                 "--tests",
                 "-p",
                 crate,
