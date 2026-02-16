@@ -13,6 +13,8 @@ use pumpkin_core::predicate;
 use pumpkin_core::predicates::Predicate;
 use pumpkin_core::variables::DomainId;
 
+mod all_different_tests;
+mod circuit_tests;
 mod cumulative_tests;
 mod linear_tests;
 
@@ -29,6 +31,9 @@ use implementation::propagators::cumulative::CumulativeChecker;
 use implementation::propagators::linear::LinearChecker;
 pub use linear_tests::set_up_linear_leq_state;
 
+use crate::propagators::all_different_tests::invalidate_all_different_fact;
+use crate::propagators::all_different_tests::recreate_conflict_all_different;
+use crate::propagators::all_different_tests::recreate_propagation_all_different;
 use crate::propagators::cumulative_tests::invalidate_cumulative_fact;
 use crate::propagators::cumulative_tests::recreate_conflict_cumulative;
 use crate::propagators::cumulative_tests::recreate_propagation_cumulative;
@@ -110,6 +115,8 @@ const LINEAR_INSTANCES: [&str; 4] = [
 ];
 
 const RCPSP_INSTANCES: [&str; 4] = ["rcpsp00", "rcpsp01", "rcpsp02", "rcpsp03"];
+
+const ALL_DIFFERENT_INSTANCES: [&str; 4] = ["sudoku_p0", "sudoku_p1", "sudoku_p3", "sudoku_p17"];
 
 impl<'a> ProofTestRunner<'a> {
     pub(crate) fn new_runner(instance: &'a str, propagator: Propagator) -> Self {
@@ -491,7 +498,7 @@ impl<'a> ProofTestRunner<'a> {
                         "all_different" if self.propagator == Propagator::AllDifferent => {
                             match generated_by {
                                 Constraint::AllDifferent(all_different) => {
-                                    let fact = Fact {
+                                    let mut fact = Fact {
                                         premises: inference
                                             .premises
                                             .iter()
@@ -503,7 +510,7 @@ impl<'a> ProofTestRunner<'a> {
 
                                     if self.run_checker {
                                         if self.check_invalid_inferences {
-                                            todo!()
+                                            invalidate_all_different_fact(all_different, &mut fact);
                                         }
 
                                         let checker = AllDifferentChecker {
@@ -517,14 +524,24 @@ impl<'a> ProofTestRunner<'a> {
                                             )
                                             .expect("Premises were inconsistent");
 
-                                        if checker.check(
+                                        let result = checker.check(
                                             variable_state,
                                             &fact.premises,
                                             fact.consequent.as_ref(),
-                                        ) {
-                                        } else {
+                                        );
+
+                                        if self.check_invalid_inferences {
+                                            if result {
+                                                return Err(CheckerError::CheckerDidNotReject {
+                                                    fact: fact.clone(),
+                                                    instance: self.instance,
+                                                    propagator: self.propagator,
+                                                    constraint: format!("{all_different:#?}"),
+                                                });
+                                            }
+                                        } else if !result {
                                             return Err(CheckerError::CouldNotCheck {
-                                                fact,
+                                                fact: fact.clone(),
                                                 instance: self.instance,
                                                 propagator: self.propagator,
                                                 constraint: format!("{all_different:#?}"),
@@ -533,11 +550,21 @@ impl<'a> ProofTestRunner<'a> {
                                     }
 
                                     if self.check_conflicts && fact.consequent.is_none() {
-                                        todo!()
+                                        recreate_conflict_all_different(
+                                            self.instance,
+                                            all_different,
+                                            &fact,
+                                            &model,
+                                        )?;
                                     }
 
                                     if self.check_propagations && fact.consequent.is_some() {
-                                        todo!()
+                                        recreate_propagation_all_different(
+                                            self.instance,
+                                            all_different,
+                                            &fact,
+                                            &model,
+                                        )?;
                                     }
                                 }
                                 _ => unreachable!(),
