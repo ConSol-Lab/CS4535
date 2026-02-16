@@ -120,6 +120,7 @@ pub(crate) fn recreate_propagation_cumulative<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Cumulative,
+            constraint: format!("{cumulative:#?}"),
         })
     }
 }
@@ -143,6 +144,7 @@ pub(crate) fn recreate_conflict_cumulative<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Cumulative,
+            constraint: format!("{cumulative:#?}"),
         })
     }
 }
