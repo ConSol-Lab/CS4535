@@ -58,19 +58,30 @@ def run(experiment_name: str, other_experiment_name: str) -> int:
     # Load first experiment
     try:
         (_, experiment_csv) = load_csv(config, experiment_name)
-    except Exception:
+    except Exception as e:
+        print(e)
         return 1
 
     # Load other experiment
     try:
         (_, other_experiment_csv) = load_csv(config, other_experiment_name)
-    except Exception:
+    except Exception as e:
+        print(e)
         return 1
 
     logging.info("Processing...")
 
+    pl.Config.set_tbl_rows(-1)
+    pl.Config.set_tbl_hide_column_data_types(True)
+    pl.Config.set_tbl_hide_dataframe_shape(True)
+
     experiment_df = pl.read_csv(experiment_csv)
+    status_overview = experiment_df.group_by("status").count()
+    print(f"Instance statuses {experiment_name}:\n{status_overview}\n")
+
     other_experiment_df = pl.read_csv(other_experiment_csv)
+    other_status_overview = other_experiment_df.group_by("status").count()
+    print(f"Instance statuses {other_experiment_name}:\n{other_status_overview}")
 
     combined = experiment_df.join(other_experiment_df, on="benchmark-key").filter(pl.col("status") == "OPTIMAL")
 
