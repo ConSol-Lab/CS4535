@@ -10,6 +10,7 @@ use std::time::Duration;
 use clap::Parser;
 use clap::ValueEnum;
 use file_format::FileFormat;
+use implementation::propagators::circuit::CircuitExplanationType;
 use implementation::resolvers::AllDecisionResolver;
 use implementation::resolvers::NoLearningResolver;
 use implementation::resolvers::ResolutionResolver;
@@ -348,9 +349,14 @@ struct Args {
     #[arg(long)]
     circuit_conflict_only: bool,
 
+    /// The explanation used for explaining Circuit propagations and conflicts.
+    #[arg(long)]
+    circuit_explanation_type: CircuitExplanationType,
+
     /// Whether the cumulative propagator should only do conflict detection.
     #[arg(long)]
     cumulative_conflict_only: bool,
+
     /// Whether the all_different propagator should only do conflict detection.
     #[arg(long)]
     all_different_conflict_only: bool,
@@ -510,6 +516,7 @@ fn run() -> PumpkinResult<()> {
                     optimisation_strategy: args.optimisation_strategy,
                     proof_type: args.proof_path.map(|_| args.proof_type),
                     verbose: args.verbose,
+                    circuit_explanation_type: args.circuit_explanation_type,
                 },
                 NoLearningResolver,
             )?,
@@ -527,6 +534,7 @@ fn run() -> PumpkinResult<()> {
                     optimisation_strategy: args.optimisation_strategy,
                     proof_type: args.proof_path.map(|_| args.proof_type),
                     verbose: args.verbose,
+                    circuit_explanation_type: args.circuit_explanation_type,
                 },
                 ResolutionResolver::new(should_minimise_nogoods),
             )?,
@@ -544,6 +552,7 @@ fn run() -> PumpkinResult<()> {
                     optimisation_strategy: args.optimisation_strategy,
                     proof_type: args.proof_path.map(|_| args.proof_type),
                     verbose: args.verbose,
+                    circuit_explanation_type: args.circuit_explanation_type,
                 },
                 AllDecisionResolver::new(should_minimise_nogoods),
             )?,

@@ -11,6 +11,7 @@ use std::path::Path;
 use std::time::Duration;
 use std::time::Instant;
 
+use implementation::propagators::circuit::CircuitExplanationType;
 use pumpkin_core::branching::branchers::alternating::AlternatingBrancher;
 use pumpkin_core::branching::branchers::alternating::every_x_restarts::EveryXRestarts;
 use pumpkin_core::branching::branchers::alternating::until_solution::UntilSolution;
@@ -78,6 +79,9 @@ pub(crate) struct FlatZincOptions {
 
     /// Whether the circuit propagator should only do conflict detection.
     pub(crate) circuit_conflict_only: bool,
+
+    /// The explanation used for explaining Circuit propagations and conflicts.
+    pub(crate) circuit_explanation_type: CircuitExplanationType,
 
     /// Whether the cumulative propagator should only do conflict detection.
     pub(crate) cumulative_conflict_only: bool,

@@ -15,6 +15,7 @@ use pumpkin_core::results::PropagationStatusCP;
 use pumpkin_core::variables::IntegerVariable;
 
 use crate::propagators::circuit::CircuitChecker;
+use crate::propagators::circuit::CircuitExplanationType;
 
 declare_inference_label!(Circuit);
 
@@ -23,6 +24,7 @@ pub struct CircuitConstructor<Var> {
     pub successors: Box<[Var]>,
     pub constraint_tag: ConstraintTag,
     pub conflict_detection_only: bool,
+    pub explanation_type: CircuitExplanationType,
 }
 
 impl<Var> PropagatorConstructor for CircuitConstructor<Var>
@@ -31,6 +33,7 @@ where
 {
     type PropagatorImpl = CircuitPropagator<Var>;
 
+    #[allow(unreachable_code, reason = "Will be implemented in the assignment")]
     fn create(self, _context: PropagatorConstructorContext) -> Self::PropagatorImpl {
         // Register for events
         todo!();
@@ -38,6 +41,7 @@ where
         CircuitPropagator {
             // TODO
             conflict_detection_only: self.conflict_detection_only,
+            explanation_type: self.explanation_type,
             _inference_code: InferenceCode::new(self.constraint_tag, Circuit),
             phantom_data: PhantomData,
         }
@@ -57,6 +61,7 @@ where
 #[derive(Clone, Debug)]
 pub struct CircuitPropagator<Var> {
     // TODO
+    explanation_type: CircuitExplanationType,
     conflict_detection_only: bool,
     _inference_code: InferenceCode,
     /// Here to avoid build warnings
@@ -75,7 +80,15 @@ where
         "Circuit"
     }
 
+    #[allow(unreachable_code, reason = "Will be implemented in the assignment")]
     fn propagate_from_scratch(&self, mut _context: PropagationContext) -> PropagationStatusCP {
+        // Whenever you call `context.post` or return a conflict, you should generate an
+        // explanation based on the provided type
+        match self.explanation_type {
+            CircuitExplanationType::Direct => todo!(),
+            CircuitExplanationType::Indirect => todo!(),
+        }
+
         if self.conflict_detection_only {
             // TODO: Only perform conflict detection
 

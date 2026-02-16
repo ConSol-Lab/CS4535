@@ -1070,11 +1070,14 @@ fn compile_circuit(
     check_parameters!(exprs, 1, "fzn_circuit");
 
     let variables = context.resolve_integer_variable_array(&exprs[0])?.to_vec();
-    Ok(
-        pumpkin_constraints::circuit(variables, constraint_tag, options.circuit_conflict_only)
-            .post(context.solver)
-            .is_ok(),
+    Ok(pumpkin_constraints::circuit(
+        variables,
+        constraint_tag,
+        options.circuit_conflict_only,
+        options.circuit_explanation_type,
     )
+    .post(context.solver)
+    .is_ok())
 }
 
 fn compile_table(

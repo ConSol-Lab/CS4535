@@ -32,6 +32,7 @@ where
 {
     type PropagatorImpl = LinearLessOrEqualPropagator<Var>;
 
+    #[allow(unreachable_code, reason = "Will be implemented in the assignment")]
     fn create(self, _context: PropagatorConstructorContext) -> Self::PropagatorImpl {
         // Register for events
         todo!();
