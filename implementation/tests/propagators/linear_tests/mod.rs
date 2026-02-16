@@ -110,6 +110,7 @@ pub(crate) fn recreate_propagation_linear<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Linear,
+            constraint: format!("{linear:#?}"),
         })
     }
 }
@@ -133,6 +134,7 @@ pub(crate) fn recreate_conflict_linear<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Linear,
+            constraint: format!("{linear:#?}"),
         })
     }
 }
