@@ -17,6 +17,8 @@ def build_test_cases(crate: str = "implementation"):
                 "build",
                 "--release",
                 "--tests",
+                "--features",
+                "pumpkin-core/check-propagations",
                 "-p",
                 crate,
             ],
