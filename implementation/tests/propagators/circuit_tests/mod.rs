@@ -5,6 +5,8 @@ mod circuit_propagation_tests;
 use std::rc::Rc;
 
 use implementation::propagators::all_different::AllDifferentConstructor;
+use implementation::propagators::circuit::CircuitConstructor;
+use implementation::propagators::circuit::CircuitExplanationType;
 use pumpkin_checking::AtomicConstraint;
 use pumpkin_core::TestSolver;
 use pumpkin_core::containers::HashMap;
@@ -94,10 +96,6 @@ pub(crate) fn add_circuit_propagator(
     let variables = circuit
         .successors
         .iter()
-        .filter(|variable| match &variable.0 {
-            fzn_rs::VariableExpr::Identifier(ident) => variables.contains_key(ident),
-            fzn_rs::VariableExpr::Constant(_) => true,
-        })
         .map(|variable| match &variable.0 {
             fzn_rs::VariableExpr::Identifier(ident) => {
                 if let Some(var) = variables.get(ident) {
@@ -123,9 +121,11 @@ pub(crate) fn add_circuit_propagator(
         })
         .collect::<Vec<_>>()
         .into();
-    solver.new_propagator(AllDifferentConstructor {
-        x: variables,
+
+    solver.new_propagator(CircuitConstructor {
+        successors: variables,
         constraint_tag,
         conflict_detection_only,
+        explanation_type: CircuitExplanationType::default(),
     })
 }
