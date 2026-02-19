@@ -118,6 +118,8 @@ const RCPSP_INSTANCES: [&str; 4] = ["rcpsp00", "rcpsp01", "rcpsp02", "rcpsp03"];
 
 const ALL_DIFFERENT_INSTANCES: [&str; 4] = ["sudoku_p0", "sudoku_p1", "sudoku_p3", "sudoku_p17"];
 
+const TSP_INSTANCES: [&str; 4] = ["TSP_N5_1", "TSP_N5_2", "TSP_N5_3", "TSP_N5_4"];
+
 impl<'a> ProofTestRunner<'a> {
     pub(crate) fn new_runner(instance: &'a str, propagator: Propagator) -> Self {
         Self {
