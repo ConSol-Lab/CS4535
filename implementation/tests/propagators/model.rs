@@ -24,6 +24,7 @@ pub(crate) enum Constraint {
     Cumulative(Cumulative),
     AllDifferent(AllDifferent),
     Circuit(Circuit),
+    Element(Element),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -407,6 +408,13 @@ pub(crate) struct Circuit {
     pub(crate) successors: Vec<Variable>,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct Element {
+    pub(crate) elements: Vec<Variable>,
+    pub(crate) index: Variable,
+    pub(crate) rhs: Variable,
+}
+
 #[allow(unused, reason = "Could be used in the future")]
 #[derive(Clone, Debug)]
 pub(crate) enum Objective {
@@ -564,6 +572,14 @@ enum FlatZincConstraints {
     },
     #[name("pumpkin_all_different")]
     AllDifferent(fzn_rs::ArrayExpr<VariableExpr<i32>>),
+    #[name("pumpkin_circuit")]
+    Circuit(fzn_rs::ArrayExpr<VariableExpr<i32>>),
+    #[name("array_int_element")]
+    Element {
+        index: VariableExpr<i32>,
+        elements: fzn_rs::ArrayExpr<VariableExpr<i32>>,
+        rhs: VariableExpr<i32>,
+    },
 }
 
 /// Parse a FlatZinc file to a checker [`Model`].
@@ -628,7 +644,6 @@ pub(crate) fn parse_model(path: impl AsRef<Path>) -> anyhow::Result<Model> {
                     bound: *bound,
                 })
             }
-
             FlatZincConstraints::LinearEq {
                 weights,
                 variables,
@@ -656,7 +671,6 @@ pub(crate) fn parse_model(path: impl AsRef<Path>) -> anyhow::Result<Model> {
                     bound: *bound,
                 })
             }
-
             FlatZincConstraints::Cumulative {
                 start_times,
                 durations,
@@ -690,7 +704,6 @@ pub(crate) fn parse_model(path: impl AsRef<Path>) -> anyhow::Result<Model> {
                     capacity: *capacity,
                 })
             }
-
             FlatZincConstraints::AllDifferent(variables) => {
                 let variables = fzn_model
                     .resolve_array(variables)?
@@ -698,6 +711,32 @@ pub(crate) fn parse_model(path: impl AsRef<Path>) -> anyhow::Result<Model> {
                     .collect::<Result<Vec<_>, _>>()?;
 
                 Constraint::AllDifferent(AllDifferent { variables })
+            }
+            FlatZincConstraints::Circuit(variables) => {
+                let variables = fzn_model
+                    .resolve_array(variables)?
+                    .map(|maybe_variable| maybe_variable.map(Variable::from))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                Constraint::Circuit(Circuit {
+                    successors: variables,
+                })
+            }
+            FlatZincConstraints::Element {
+                index,
+                elements,
+                rhs,
+            } => {
+                let elements = fzn_model
+                    .resolve_array(elements)?
+                    .map(|maybe_variable| maybe_variable.map(Variable::from))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                Constraint::Element(Element {
+                    elements,
+                    index: index.clone().into(),
+                    rhs: rhs.clone().into(),
+                })
             }
         };
 

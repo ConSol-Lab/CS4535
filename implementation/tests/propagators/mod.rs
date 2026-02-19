@@ -118,7 +118,7 @@ const RCPSP_INSTANCES: [&str; 4] = ["rcpsp00", "rcpsp01", "rcpsp02", "rcpsp03"];
 
 const ALL_DIFFERENT_INSTANCES: [&str; 4] = ["sudoku_p0", "sudoku_p1", "sudoku_p3", "sudoku_p17"];
 
-const TSP_INSTANCES: [&str; 4] = ["TSP_N5_1", "TSP_N5_2", "TSP_N5_3", "TSP_N5_4"];
+const TSP_INSTANCES: [&str; 4] = ["TSP_N5_3", "TSP_N10_0", "TSP_N10_1", "TSP_N10_2"];
 
 impl<'a> ProofTestRunner<'a> {
     pub(crate) fn new_runner(instance: &'a str, propagator: Propagator) -> Self {
@@ -573,58 +573,63 @@ impl<'a> ProofTestRunner<'a> {
                             }
                         }
 
-                        "circuit" if self.propagator == Propagator::Circuit => match generated_by {
-                            Constraint::Circuit(circuit) => {
-                                let fact = Fact {
-                                    premises: inference
-                                        .premises
-                                        .iter()
-                                        .cloned()
-                                        .map(Into::into)
-                                        .collect(),
-                                    consequent: inference.consequent.clone().map(Into::into),
-                                };
+                        "circuit_forward_check" | "circuit_prevent"
+                            if self.propagator == Propagator::Circuit =>
+                        {
+                            match generated_by {
+                                Constraint::Circuit(circuit) => {
+                                    let fact = Fact {
+                                        premises: inference
+                                            .premises
+                                            .iter()
+                                            .cloned()
+                                            .map(Into::into)
+                                            .collect(),
+                                        consequent: inference.consequent.clone().map(Into::into),
+                                    };
 
-                                if self.run_checker {
-                                    if self.check_invalid_inferences {
+                                    if self.run_checker {
+                                        if self.check_invalid_inferences {
+                                            todo!()
+                                        }
+
+                                        let checker = CircuitChecker {
+                                            successors: circuit.successors.clone(),
+                                        };
+
+                                        let variable_state =
+                                            VariableState::prepare_for_conflict_check(
+                                                fact.premises.clone(),
+                                                fact.consequent.clone(),
+                                            )
+                                            .expect("Premises were inconsistent");
+
+                                        if checker.check(
+                                            variable_state,
+                                            &fact.premises,
+                                            fact.consequent.as_ref(),
+                                        ) {
+                                        } else {
+                                            return Err(CheckerError::CouldNotCheck {
+                                                fact,
+                                                instance: self.instance,
+                                                propagator: self.propagator,
+                                                constraint: format!("{circuit:#?}"),
+                                            });
+                                        }
+                                    }
+
+                                    if self.check_conflicts && fact.consequent.is_none() {
                                         todo!()
                                     }
 
-                                    let checker = CircuitChecker {
-                                        successors: circuit.successors.clone(),
-                                    };
-
-                                    let variable_state = VariableState::prepare_for_conflict_check(
-                                        fact.premises.clone(),
-                                        fact.consequent.clone(),
-                                    )
-                                    .expect("Premises were inconsistent");
-
-                                    if checker.check(
-                                        variable_state,
-                                        &fact.premises,
-                                        fact.consequent.as_ref(),
-                                    ) {
-                                    } else {
-                                        return Err(CheckerError::CouldNotCheck {
-                                            fact,
-                                            instance: self.instance,
-                                            propagator: self.propagator,
-                                            constraint: format!("{circuit:#?}"),
-                                        });
+                                    if self.check_propagations && fact.consequent.is_some() {
+                                        todo!()
                                     }
                                 }
-
-                                if self.check_conflicts && fact.consequent.is_none() {
-                                    todo!()
-                                }
-
-                                if self.check_propagations && fact.consequent.is_some() {
-                                    todo!()
-                                }
+                                _ => unreachable!(),
                             }
-                            _ => unreachable!(),
-                        },
+                        }
 
                         // Skip label and propagator combinations that we do not care
                         // about.
