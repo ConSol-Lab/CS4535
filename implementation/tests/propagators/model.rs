@@ -24,6 +24,7 @@ pub(crate) enum Constraint {
     Cumulative(Cumulative),
     AllDifferent(AllDifferent),
     Circuit(Circuit),
+    #[allow(unused, reason = "Could be used in the future")]
     Element(Element),
 }
 
@@ -43,6 +44,15 @@ impl From<IntAtomic<Rc<str>, i32>> for Atomic {
 impl From<bool> for Atomic {
     fn from(value: bool) -> Self {
         if value { Atomic::True } else { Atomic::False }
+    }
+}
+
+impl Atomic {
+    pub(crate) fn set_value(&mut self, value: i32) {
+        match self {
+            Atomic::True | Atomic::False => {}
+            Atomic::IntAtomic(int_atomic) => int_atomic.value = value,
+        }
     }
 }
 
@@ -408,6 +418,7 @@ pub(crate) struct Circuit {
     pub(crate) successors: Vec<Variable>,
 }
 
+#[allow(unused, reason = "Could be used in the future")]
 #[derive(Clone, Debug)]
 pub(crate) struct Element {
     pub(crate) elements: Vec<Variable>,

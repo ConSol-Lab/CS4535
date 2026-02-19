@@ -1,9 +1,18 @@
 use std::rc::Rc;
 
+use drcp_format::IntAtomic;
+use drcp_format::IntComparison;
 use implementation::propagators::all_different::AllDifferentConstructor;
 use pumpkin_checking::AtomicConstraint;
+use pumpkin_checking::CheckerVariable;
+use pumpkin_checking::Union;
+use pumpkin_checking::VariableState;
+use pumpkin_core::Random;
 use pumpkin_core::TestSolver;
 use pumpkin_core::containers::HashMap;
+#[allow(clippy::disallowed_types, reason = "Used for testing")]
+use pumpkin_core::rand::SeedableRng;
+use pumpkin_core::rand::rngs::SmallRng;
 use pumpkin_core::state::Conflict;
 use pumpkin_core::state::PropagatorId;
 use pumpkin_core::variables::DomainId;
@@ -19,15 +28,83 @@ mod all_different_checker_tests;
 mod all_different_conflict_tests;
 mod all_different_propagation_tests;
 
-pub(crate) fn invalidate_all_different_fact(_all_different: &AllDifferent, _fact: &mut Fact) {
+pub(crate) fn invalidate_all_different_fact(all_different: &AllDifferent, fact: &mut Fact) {
+    println!("INVALIDATING");
     // We create some random generator
-    // let seed = all_different.variables.len() as u64
-    //     + fact.premises.len() as u64
-    //     + fact .premises .iter() .map(|premise| premise.value().unsigned_abs() as u64)
-    //       .sum::<u64>();
-    // let rng = SmallRng::seed_from_u64(seed);
+    let seed = all_different.variables.len() as u64
+        + fact.premises.len() as u64
+        + fact
+            .premises
+            .iter()
+            .map(|premise| premise.value().unsigned_abs() as u64)
+            .sum::<u64>();
+    let mut rng = SmallRng::seed_from_u64(seed);
 
-    todo!()
+    let mut union = Union::empty();
+    let state =
+        VariableState::prepare_for_conflict_check(fact.premises.clone(), fact.consequent.clone())
+            .expect("Premises were inconsistent");
+    let variables = all_different
+        .variables
+        .iter()
+        .filter(|variable| variable.iter_induced_domain(&state).is_some())
+        .collect::<Vec<_>>();
+
+    for &variable in &variables {
+        union.add(&state, variable);
+    }
+
+    while !fact.premises.is_empty()
+        && (union.size().is_none() || union.size().unwrap() < variables.len())
+    {
+        union = Union::empty();
+
+        let random_index = rng.generate_usize_in_range(0..fact.premises.len());
+        match fact.premises[random_index].comparison() {
+            pumpkin_checking::Comparison::GreaterEqual => {
+                let new_value = fact.premises[random_index].value() - 1;
+                fact.premises[random_index].set_value(new_value)
+            }
+            pumpkin_checking::Comparison::LessEqual => {
+                let new_value = fact.premises[random_index].value() + 1;
+                fact.premises[random_index].set_value(new_value)
+            }
+            pumpkin_checking::Comparison::NotEqual => {
+                let _ = fact.premises.remove(random_index);
+            }
+            pumpkin_checking::Comparison::Equal => {
+                let removed = fact.premises.remove(random_index);
+
+                fact.premises.push(
+                    IntAtomic::new(
+                        removed.identifier(),
+                        IntComparison::GreaterEqual,
+                        removed.value() - 1,
+                    )
+                    .into(),
+                );
+                fact.premises.push(
+                    IntAtomic::new(
+                        removed.identifier(),
+                        IntComparison::LessEqual,
+                        removed.value() + 1,
+                    )
+                    .into(),
+                );
+            }
+        }
+
+        let state = VariableState::prepare_for_conflict_check(
+            fact.premises.clone(),
+            fact.consequent.clone(),
+        )
+        .expect("Premises were inconsistent");
+
+        // Collect all values present in at least one of the domains.
+        for &variable in &variables {
+            union.add(&state, variable);
+        }
+    }
 }
 
 pub(crate) fn recreate_conflict_all_different<'a>(

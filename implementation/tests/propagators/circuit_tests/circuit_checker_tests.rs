@@ -2,6 +2,7 @@
 
 use crate::Propagator;
 use crate::propagators::ProofTestRunner;
+use crate::propagators::TSP_DIRECT_INSTANCES;
 use crate::propagators::TSP_INSTANCES;
 
 #[test]
@@ -47,7 +48,7 @@ fn circuit_checker_test_3() {
 #[test]
 fn circuit_checker_test_0_invalid() {
     let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[0], Propagator::Circuit).invalid_checks();
+        ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[0], Propagator::Circuit).invalid_checks();
     let result = runner.run();
 
     if let Err(e) = result {
@@ -58,7 +59,7 @@ fn circuit_checker_test_0_invalid() {
 #[test]
 fn circuit_checker_test_1_invalid() {
     let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[1], Propagator::Circuit).invalid_checks();
+        ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[1], Propagator::Circuit).invalid_checks();
     let result = runner.run();
 
     if let Err(e) = result {
@@ -69,7 +70,7 @@ fn circuit_checker_test_1_invalid() {
 #[test]
 fn circuit_checker_test_2_invalid() {
     let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[2], Propagator::Circuit).invalid_checks();
+        ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[2], Propagator::Circuit).invalid_checks();
     let result = runner.run();
 
     if let Err(e) = result {
@@ -80,7 +81,7 @@ fn circuit_checker_test_2_invalid() {
 #[test]
 fn circuit_checker_test_3_invalid() {
     let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[3], Propagator::Circuit).invalid_checks();
+        ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[3], Propagator::Circuit).invalid_checks();
     let result = runner.run();
 
     if let Err(e) = result {

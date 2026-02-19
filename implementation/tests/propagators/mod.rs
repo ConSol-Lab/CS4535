@@ -65,7 +65,7 @@ struct ProofTestRunner<'a> {
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CheckerError<'a> {
     #[error(
-        "The {propagator:?} checker was not able to check the inference {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} checker was not able to check the inference {fact:#?} for instance {instance}\nConstraint: {constraint:?}"
     )]
     CouldNotCheck {
         fact: Fact,
@@ -74,7 +74,7 @@ pub(crate) enum CheckerError<'a> {
         constraint: String,
     },
     #[error(
-        "The {propagator:?} checker did not reject the inference {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} checker did not reject the inference {fact:#?} for instance {instance}\nConstraint: {constraint:?}"
     )]
     CheckerDidNotReject {
         fact: Fact,
@@ -83,7 +83,7 @@ pub(crate) enum CheckerError<'a> {
         constraint: String,
     },
     #[error(
-        "The {propagator:?} propagator was not able to recreate the conflict described by {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} propagator was not able to recreate the conflict described by {fact:#?} for instance {instance}\nConstraint: {constraint:?}"
     )]
     ConflictCouldNotBeReproduced {
         fact: Fact,
@@ -92,7 +92,7 @@ pub(crate) enum CheckerError<'a> {
         constraint: String,
     },
     #[error(
-        "The {propagator:?} propagator was not able to recreate the propagation described by {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} propagator was not able to recreate the propagation described by {fact:#?} for instance {instance}\nConstraint: {constraint:?}"
     )]
     PropagationCouldNotBeReproduced {
         fact: Fact,
@@ -522,6 +522,9 @@ impl<'a> ProofTestRunner<'a> {
 
                                     if self.run_checker {
                                         if self.check_invalid_inferences {
+                                            if fact.premises.is_empty() {
+                                                continue;
+                                            }
                                             invalidate_all_different_fact(all_different, &mut fact);
                                         }
 
@@ -600,6 +603,10 @@ impl<'a> ProofTestRunner<'a> {
 
                                     if self.run_checker {
                                         if self.check_invalid_inferences {
+                                            if fact.premises.is_empty() {
+                                                continue;
+                                            }
+
                                             invalidate_circuit_fact(circuit, &mut fact);
                                         }
 

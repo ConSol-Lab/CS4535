@@ -4,12 +4,15 @@ mod circuit_propagation_tests;
 
 use std::rc::Rc;
 
-use implementation::propagators::all_different::AllDifferentConstructor;
 use implementation::propagators::circuit::CircuitConstructor;
 use implementation::propagators::circuit::CircuitExplanationType;
 use pumpkin_checking::AtomicConstraint;
+use pumpkin_core::Random;
 use pumpkin_core::TestSolver;
 use pumpkin_core::containers::HashMap;
+#[allow(clippy::disallowed_types, reason = "Used for testing")]
+use pumpkin_core::rand::SeedableRng;
+use pumpkin_core::rand::rngs::SmallRng;
 use pumpkin_core::state::Conflict;
 use pumpkin_core::state::PropagatorId;
 use pumpkin_core::variables::DomainId;
@@ -21,15 +24,20 @@ use crate::propagators::model::Circuit;
 use crate::propagators::model::Fact;
 use crate::propagators::model::Model;
 
-pub(crate) fn invalidate_circuit_fact(_circuit: &Circuit, _fact: &mut Fact) {
+pub(crate) fn invalidate_circuit_fact(circuit: &Circuit, fact: &mut Fact) {
     // We create some random generator
-    // let seed = all_different.variables.len() as u64
-    //     + fact.premises.len() as u64
-    //     + fact .premises .iter() .map(|premise| premise.value().unsigned_abs() as u64)
-    //       .sum::<u64>();
-    // let rng = SmallRng::seed_from_u64(seed);
+    let seed = circuit.successors.len() as u64
+        + fact.premises.len() as u64
+        + fact
+            .premises
+            .iter()
+            .map(|premise| premise.value().unsigned_abs() as u64)
+            .sum::<u64>();
+    let mut rng = SmallRng::seed_from_u64(seed);
 
-    todo!()
+    let _ = fact
+        .premises
+        .remove(rng.generate_usize_in_range(0..fact.premises.len()));
 }
 
 pub(crate) fn recreate_conflict_circuit<'a>(
@@ -99,22 +107,20 @@ pub(crate) fn add_circuit_propagator(
         .map(|variable| match &variable.0 {
             fzn_rs::VariableExpr::Identifier(ident) => {
                 if let Some(var) = variables.get(ident) {
-                    var.clone()
+                    *var
                 } else {
                     // We add all variables to the model; not that interesting if you only get a
                     // cycle
-                    let domain = model.get_domain(&ident);
+                    let domain = model.get_domain(ident);
 
-                    let var = match domain {
+                    match domain {
                         fzn_rs::ast::Domain::UnboundedInt => unimplemented!(),
                         fzn_rs::ast::Domain::Int(range_list) => solver.new_variable(
                             (*range_list.lower_bound()) as i32,
                             (*range_list.upper_bound()) as i32,
                         ),
                         fzn_rs::ast::Domain::Bool => solver.new_variable(0, 1),
-                    };
-
-                    var
+                    }
                 }
             }
             fzn_rs::VariableExpr::Constant(constant) => solver.new_variable(*constant, *constant),
