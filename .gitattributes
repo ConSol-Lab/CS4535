@@ -1,2 +1,4 @@
 /pumpkin-checker/tests/valid_proofs/TSP_N10_1.drcp filter=lfs diff=lfs merge=lfs -text
 /pumpkin-checker/tests/valid_proofs/TSP_N10_2.drcp filter=lfs diff=lfs merge=lfs -text
+/pumpkin-checker/tests/valid_proofs/TSP_N10_1_direct.drcp filter=lfs diff=lfs merge=lfs -text
+/pumpkin-checker/tests/valid_proofs/TSP_N10_2_direct.drcp filter=lfs diff=lfs merge=lfs -text

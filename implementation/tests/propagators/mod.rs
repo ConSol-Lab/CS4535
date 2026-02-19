@@ -123,6 +123,13 @@ const ALL_DIFFERENT_INSTANCES: [&str; 4] = ["sudoku_p0", "sudoku_p1", "sudoku_p3
 
 const TSP_INSTANCES: [&str; 4] = ["TSP_N5_3", "TSP_N10_0", "TSP_N10_1", "TSP_N10_2"];
 
+const TSP_DIRECT_INSTANCES: [&str; 4] = [
+    "TSP_N5_3_direct",
+    "TSP_N10_0_direct",
+    "TSP_N10_1_direct",
+    "TSP_N10_2_direct",
+];
+
 impl<'a> ProofTestRunner<'a> {
     pub(crate) fn new_runner(instance: &'a str, propagator: Propagator) -> Self {
         Self {

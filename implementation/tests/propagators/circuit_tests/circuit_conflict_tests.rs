@@ -6,12 +6,12 @@
 
 use crate::Propagator;
 use crate::propagators::ProofTestRunner;
-use crate::propagators::TSP_INSTANCES;
+use crate::propagators::TSP_DIRECT_INSTANCES;
 
 #[test]
 fn circuit_conflict_test_0() {
-    let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[0], Propagator::Circuit).check_conflicts_only();
+    let runner = ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[0], Propagator::Circuit)
+        .check_conflicts_only();
     let result = runner.run();
 
     if let Err(e) = result {
@@ -21,8 +21,8 @@ fn circuit_conflict_test_0() {
 
 #[test]
 fn circuit_conflict_test_1() {
-    let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[1], Propagator::Circuit).check_conflicts_only();
+    let runner = ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[1], Propagator::Circuit)
+        .check_conflicts_only();
     let result = runner.run();
 
     if let Err(e) = result {
@@ -32,8 +32,8 @@ fn circuit_conflict_test_1() {
 
 #[test]
 fn circuit_conflict_test_2() {
-    let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[2], Propagator::Circuit).check_conflicts_only();
+    let runner = ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[2], Propagator::Circuit)
+        .check_conflicts_only();
     let result = runner.run();
 
     if let Err(e) = result {
@@ -43,8 +43,8 @@ fn circuit_conflict_test_2() {
 
 #[test]
 fn circuit_conflict_test_3() {
-    let runner =
-        ProofTestRunner::new_runner(TSP_INSTANCES[3], Propagator::Circuit).check_conflicts_only();
+    let runner = ProofTestRunner::new_runner(TSP_DIRECT_INSTANCES[3], Propagator::Circuit)
+        .check_conflicts_only();
     let result = runner.run();
 
     if let Err(e) = result {
