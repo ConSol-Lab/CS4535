@@ -1,13 +1,15 @@
 For running, we require an installation of [uv](https://docs.astral.sh/uv/).
 
-# Assignment 1
-
 # Initialising Experiments
 The running and processing of the experiments is the same, but the initialisation is different for each experiment. We will first describe the initialisation of the experiments.
 
 [!IMPORTANT]
 When asked for `Ref for pumpkin`; please enter the [commit hash](https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History) with which you want to perform the experimentation.
 You should *never* provide `.`, since it does not include any uncommited changes.
+
+---
+
+# Assignment 1
 
 ## Cumulative Propagator
 Please run the following commands:
@@ -32,6 +34,41 @@ Please run the following commands:
 ```bash
 uv run init_experiment solve_linear_conflict linear
 ```
+---
+
+# Assignment 2
+
+## Circuit Propagator
+Please run the following commands:
+```bash
+uv run init_experiment solve_circuit tsp 
+```
+
+## Circuit Conflict Only
+Please run the following commands:
+```bash
+uv run init_experiment solve_circuit_conflict tsp 
+```
+
+## AllDifferent Propagator
+Please run the following commands:
+```bash
+uv run init_experiment solve_all_different sudoku 
+```
+
+## AllDifferent Conflict Only
+Please run the following commands:
+```bash
+uv run init_experiment solve_all_different_conflict sudoku 
+```
+
+## AllDifferent Decomposition 
+Please run the following commands:
+```bash
+uv run init_experiment solve_all_different_decomposition sudoku 
+```
+
+---
 
 # Run experiments
 Now that you have initialised the experiments (with the name `<EXPERIMENT_NAME>`), you can run the experiments using the following command:
