@@ -24,6 +24,7 @@ fn iterator_finds_all_solutions() {
             vec![x, y, z],
             constraint_tag,
             false,
+            true,
         ))
         .post();
 

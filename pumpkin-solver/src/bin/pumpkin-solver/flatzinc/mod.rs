@@ -88,6 +88,9 @@ pub(crate) struct FlatZincOptions {
 
     /// Whether the all_different propagator should only do conflict detection.
     pub(crate) all_different_conflict_only: bool,
+
+    /// Whether to use the decomposition of the all-different
+    pub(crate) all_different_decomposition: bool,
 }
 
 fn log_statistics(

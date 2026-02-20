@@ -1055,6 +1055,7 @@ fn compile_all_different(
         variables,
         constraint_tag,
         options.all_different_conflict_only,
+        options.all_different_decomposition,
     )
     .post(context.solver)
     .is_ok())
