@@ -5,6 +5,10 @@ For running, we require an installation of [uv](https://docs.astral.sh/uv/).
 # Initialising Experiments
 The running and processing of the experiments is the same, but the initialisation is different for each experiment. We will first describe the initialisation of the experiments.
 
+[!IMPORTANT]
+When asked for `Ref for pumpkin`; please enter the [commit hash](https://git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History) with which you want to perform the experimentation.
+You should *never* provide `.`, since it does not include any uncommited changes.
+
 ## Cumulative Propagator
 Please run the following commands:
 ```bash

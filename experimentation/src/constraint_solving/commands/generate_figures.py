@@ -38,9 +38,29 @@ def generate_image(
     image_dir = config.figures_dir / f"{experiment_name}__{other_experiment_name}"
     image_dir.mkdir(parents=True, exist_ok=True)
 
-    plt.scatter(combined[column_name], combined[f"{column_name}_right"])
-    plt.xscale("log")
-    plt.yscale("log")
+    if column_name in combined.columns and f"{column_name}_right" in combined.columns:
+        plt.scatter(combined[column_name], combined[f"{column_name}_right"])
+
+        if (combined[column_name] > 0).any():
+            plt.xscale("log")
+        else:
+            logging.info(
+                f"Could not find any values `> 0` for {column_name} of {experiment_name}; not applying log scale to"
+                " x-axis"
+            )
+
+        if (combined[f"{column_name}_right"] > 0).any():
+            plt.yscale("log")
+        else:
+            logging.info(
+                f"Could not find any values `> 0` for {column_name} of {other_experiment_name}; not applying log scale"
+                " to y-axis"
+            )
+    else:
+        logging.warning(
+            f"Column '{column_name}' was not found in the statistics; this indicates that either {experiment_name} or"
+            f" {other_experiment_name} did not contain any statistics."
+        )
     plt.xlabel(f"{column_name} {experiment_name}")
     plt.ylabel(f"{column_name} {other_experiment_name}")
     plt.title(f"{column_name} comparison")
