@@ -57,40 +57,40 @@ struct ProofTestRunner<'a> {
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CheckerError<'a> {
     #[error(
-        "The {propagator:?} checker was not able to check the inference {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} checker was not able to check the inference {fact:#?} for instance {instance}\nConstraint: {constraint:#?}"
     )]
     CouldNotCheck {
         fact: Fact,
         instance: &'a str,
         propagator: Propagator,
-        constraint: String,
+        constraint: Constraint,
     },
     #[error(
-        "The {propagator:?} checker did not reject the inference {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} checker did not reject the inference {fact:#?} for instance {instance}\nConstraint: {constraint:#?}"
     )]
     CheckerDidNotReject {
         fact: Fact,
         instance: &'a str,
         propagator: Propagator,
-        constraint: String,
+        constraint: Constraint,
     },
     #[error(
-        "The {propagator:?} propagator was not able to recreate the conflict described by {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} propagator was not able to recreate the conflict described by {fact:#?} for instance {instance}\nConstraint: {constraint:#?}"
     )]
     ConflictCouldNotBeReproduced {
         fact: Fact,
         instance: &'a str,
         propagator: Propagator,
-        constraint: String,
+        constraint: Constraint,
     },
     #[error(
-        "The {propagator:?} propagator was not able to recreate the propagation described by {fact:#?} for instance {instance}\nConstraint: {constraint}"
+        "The {propagator:?} propagator was not able to recreate the propagation described by {fact:#?} for instance {instance}\nConstraint: {constraint:#?}"
     )]
     PropagationCouldNotBeReproduced {
         fact: Fact,
         instance: &'a str,
         propagator: Propagator,
-        constraint: String,
+        constraint: Constraint,
     },
 }
 
@@ -228,7 +228,9 @@ impl<'a> ProofTestRunner<'a> {
                                                     fact: fact.clone(),
                                                     instance: self.instance,
                                                     propagator: self.propagator,
-                                                    constraint: format!("{linear:#?}"),
+                                                    constraint: Constraint::LinearLeq(
+                                                        linear.clone(),
+                                                    ),
                                                 });
                                             }
                                         } else {
@@ -236,7 +238,7 @@ impl<'a> ProofTestRunner<'a> {
                                                 fact: fact.clone(),
                                                 instance: self.instance,
                                                 propagator: self.propagator,
-                                                constraint: format!("{linear:#?}"),
+                                                constraint: Constraint::LinearLeq(linear.clone()),
                                             })?;
                                         }
                                     }
@@ -310,8 +312,8 @@ impl<'a> ProofTestRunner<'a> {
                                                     fact,
                                                     instance: self.instance,
                                                     propagator: self.propagator,
-                                                    constraint: format!(
-                                                        "{linear:#?} or {inverted_linear:#?}"
+                                                    constraint: Constraint::LinearEq(
+                                                        linear.clone(),
                                                     ),
                                                 });
                                             }
@@ -339,7 +341,9 @@ impl<'a> ProofTestRunner<'a> {
                                                     fact: fact.clone(),
                                                     instance: self.instance,
                                                     propagator: self.propagator,
-                                                    constraint: format!("{linear:#?}"),
+                                                    constraint: Constraint::LinearLeq(
+                                                        linear.clone(),
+                                                    ),
                                                 });
                                             }
                                         }
@@ -453,7 +457,9 @@ impl<'a> ProofTestRunner<'a> {
                                                     fact: fact.clone(),
                                                     instance: self.instance,
                                                     propagator: self.propagator,
-                                                    constraint: format!("{cumulative:#?}"),
+                                                    constraint: Constraint::Cumulative(
+                                                        cumulative.clone(),
+                                                    ),
                                                 });
                                             }
                                         } else if !result {
@@ -461,7 +467,9 @@ impl<'a> ProofTestRunner<'a> {
                                                 fact: fact.clone(),
                                                 instance: self.instance,
                                                 propagator: self.propagator,
-                                                constraint: format!("{cumulative:#?}"),
+                                                constraint: Constraint::Cumulative(
+                                                    cumulative.clone(),
+                                                ),
                                             });
                                         }
                                     }
@@ -527,7 +535,9 @@ impl<'a> ProofTestRunner<'a> {
                                                 fact,
                                                 instance: self.instance,
                                                 propagator: self.propagator,
-                                                constraint: format!("{all_different:#?}"),
+                                                constraint: Constraint::AllDifferent(
+                                                    all_different.clone(),
+                                                ),
                                             });
                                         }
                                     }
@@ -581,7 +591,7 @@ impl<'a> ProofTestRunner<'a> {
                                             fact,
                                             instance: self.instance,
                                             propagator: self.propagator,
-                                            constraint: format!("{circuit:#?}"),
+                                            constraint: Constraint::Circuit(circuit.clone()),
                                         });
                                     }
                                 }

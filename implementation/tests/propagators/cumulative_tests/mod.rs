@@ -25,6 +25,7 @@ use pumpkin_core::variables::DomainId;
 use crate::CheckerError;
 use crate::Propagator;
 use crate::propagators::ProofTestRunner;
+use crate::propagators::model::Constraint;
 use crate::propagators::model::Cumulative;
 use crate::propagators::model::Fact;
 use crate::propagators::model::Model;
@@ -120,7 +121,7 @@ pub(crate) fn recreate_propagation_cumulative<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Cumulative,
-            constraint: format!("{cumulative:#?}"),
+            constraint: Constraint::Cumulative(cumulative.clone()),
         })
     }
 }
@@ -144,7 +145,7 @@ pub(crate) fn recreate_conflict_cumulative<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Cumulative,
-            constraint: format!("{cumulative:#?}"),
+            constraint: Constraint::Cumulative(cumulative.clone()),
         })
     }
 }
