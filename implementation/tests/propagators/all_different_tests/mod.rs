@@ -21,6 +21,7 @@ use crate::CheckerError;
 use crate::Propagator;
 use crate::propagators::ProofTestRunner;
 use crate::propagators::model::AllDifferent;
+use crate::propagators::model::Constraint;
 use crate::propagators::model::Fact;
 use crate::propagators::model::Model;
 
@@ -126,7 +127,7 @@ pub(crate) fn recreate_conflict_all_different<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::AllDifferent,
-            constraint: format!("{all_different:#?}"),
+            constraint: Constraint::AllDifferent(all_different.clone()),
         })
     }
 }
@@ -155,7 +156,7 @@ pub(crate) fn recreate_propagation_all_different<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::AllDifferent,
-            constraint: format!("{all_different:#?}"),
+            constraint: Constraint::AllDifferent(all_different.clone()),
         })
     }
 }

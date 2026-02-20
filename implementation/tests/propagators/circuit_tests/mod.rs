@@ -21,6 +21,7 @@ use crate::CheckerError;
 use crate::Propagator;
 use crate::propagators::ProofTestRunner;
 use crate::propagators::model::Circuit;
+use crate::propagators::model::Constraint;
 use crate::propagators::model::Fact;
 use crate::propagators::model::Model;
 
@@ -59,7 +60,7 @@ pub(crate) fn recreate_conflict_circuit<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Circuit,
-            constraint: format!("{circuit:#?}"),
+            constraint: Constraint::Circuit(circuit.clone()),
         })
     }
 }
@@ -88,7 +89,7 @@ pub(crate) fn recreate_propagation_circuit<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Circuit,
-            constraint: format!("{circuit:#?}"),
+            constraint: Constraint::Circuit(circuit.clone()),
         })
     }
 }

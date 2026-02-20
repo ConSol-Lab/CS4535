@@ -18,6 +18,7 @@ use pumpkin_core::variables::TransformableVariable;
 use crate::CheckerError;
 use crate::Propagator;
 use crate::propagators::ProofTestRunner;
+use crate::propagators::model::Constraint;
 use crate::propagators::model::Fact;
 use crate::propagators::model::Linear;
 use crate::propagators::model::Model;
@@ -110,7 +111,7 @@ pub(crate) fn recreate_propagation_linear<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Linear,
-            constraint: format!("{linear:#?}"),
+            constraint: Constraint::LinearLeq(linear.clone()),
         })
     }
 }
@@ -134,7 +135,7 @@ pub(crate) fn recreate_conflict_linear<'a>(
             fact: fact.clone(),
             instance,
             propagator: Propagator::Linear,
-            constraint: format!("{linear:#?}"),
+            constraint: Constraint::LinearLeq(linear.clone()),
         })
     }
 }
