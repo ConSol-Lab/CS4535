@@ -5,6 +5,7 @@ from typing import Tuple
 import click
 import matplotlib.pyplot as plt
 import polars as pl
+from matplotlib.ticker import LogLocator
 
 from constraint_solving import common_init
 from constraint_solving.config import Config
@@ -33,7 +34,14 @@ def load_csv(config: Config, experiment_name: str) -> Tuple[Experiment, Path]:
 
 
 def generate_image(
-    config: Config, experiment_name: str, other_experiment_name: str, combined: pl.DataFrame, column_name: str
+    config: Config,
+    experiment_name: str,
+    other_experiment_name: str,
+    combined: pl.DataFrame,
+    column_name: str,
+    max_x_lim: None | int = None,
+    max_y_lim: None | int = None,
+    log: bool = True,
 ):
     image_dir = config.figures_dir / f"{experiment_name}__{other_experiment_name}"
     image_dir.mkdir(parents=True, exist_ok=True)
@@ -41,21 +49,37 @@ def generate_image(
     if column_name in combined.columns and f"{column_name}_right" in combined.columns:
         plt.scatter(combined[column_name], combined[f"{column_name}_right"])
 
-        if (combined[column_name] > 0).any():
-            plt.xscale("log")
-        else:
-            logging.info(
-                f"Could not find any values `> 0` for {column_name} of {experiment_name}; not applying log scale to"
-                " x-axis"
-            )
+        max_x_lim = max_x_lim if max_x_lim is not None else combined[f"{column_name}"].max()
+        max_y_lim = max_y_lim if max_y_lim is not None else combined[f"{column_name}_right"].max()
 
-        if (combined[f"{column_name}_right"] > 0).any():
+        max_lim = 1.5 * max(max_y_lim, max_x_lim)
+
+        if log and (combined[column_name] > 0).any() and (combined[f"{column_name}_right"] > 0).any():
+            plt.xlim(1e-1, max_lim)
+            plt.ylim(1e-1, max_lim)
+
+            plt.plot([1e-1, max_lim], [1e-1, max_lim], linestyle="--", color="red")
+
+            plt.xscale("log")
             plt.yscale("log")
+
+            locator = LogLocator(base=10)
+
+            ax = plt.gca()
+            ax.xaxis.set_major_locator(locator)
+            ax.yaxis.set_major_locator(locator)
         else:
-            logging.info(
-                f"Could not find any values `> 0` for {column_name} of {other_experiment_name}; not applying log scale"
-                " to y-axis"
-            )
+            plt.xlim(0, max_lim)
+            plt.ylim(0, max_lim)
+
+            plt.plot([0, max_lim], [0, max_lim], linestyle="--", color="red")
+
+            if log:
+                logging.info(
+                    f"Could not find any values `> 0` for {column_name} of {experiment_name}; not applying log scale"
+                )
+
+        plt.gca().set_aspect("equal", adjustable="box")
     else:
         logging.warning(
             f"Column '{column_name}' was not found in the statistics; this indicates that either {experiment_name} or"
@@ -103,9 +127,13 @@ def run(experiment_name: str, other_experiment_name: str) -> int:
     other_status_overview = other_experiment_df.group_by("status").count()
     print(f"Instance statuses {other_experiment_name}:\n{other_status_overview}")
 
-    combined = experiment_df.join(other_experiment_df, on="benchmark-key").filter(pl.col("status") == "OPTIMAL")
+    combined = experiment_df.join(other_experiment_df, on="benchmark-key").filter(
+        pl.col("status") == "OPTIMAL", pl.col("status_right") == "OPTIMAL"
+    )
 
     generate_image(config, experiment_name, other_experiment_name, combined, "failures")
-    generate_image(config, experiment_name, other_experiment_name, combined, "solveTime")
+    generate_image(
+        config, experiment_name, other_experiment_name, combined, "solveTime", max_x_lim=250, max_y_lim=250, log=False
+    )
 
     return 0
