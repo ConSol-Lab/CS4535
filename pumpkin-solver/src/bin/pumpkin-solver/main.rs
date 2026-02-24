@@ -10,7 +10,6 @@ use std::time::Duration;
 use clap::Parser;
 use clap::ValueEnum;
 use file_format::FileFormat;
-use implementation::propagators::circuit::CircuitExplanationType;
 use implementation::resolvers::AllDecisionResolver;
 use implementation::resolvers::NoLearningResolver;
 use implementation::resolvers::ResolutionResolver;
@@ -349,10 +348,6 @@ struct Args {
     #[arg(long)]
     circuit_conflict_only: bool,
 
-    /// The explanation used for explaining Circuit propagations and conflicts.
-    #[arg(long)]
-    circuit_explanation_type: CircuitExplanationType,
-
     /// Whether the cumulative propagator should only do conflict detection.
     #[arg(long)]
     cumulative_conflict_only: bool,
@@ -519,7 +514,6 @@ fn run() -> PumpkinResult<()> {
                     optimisation_strategy: args.optimisation_strategy,
                     proof_type: args.proof_path.map(|_| args.proof_type),
                     verbose: args.verbose,
-                    circuit_explanation_type: args.circuit_explanation_type,
                     all_different_decomposition: args.all_different_decomposition,
                 },
                 NoLearningResolver,
@@ -538,7 +532,6 @@ fn run() -> PumpkinResult<()> {
                     optimisation_strategy: args.optimisation_strategy,
                     proof_type: args.proof_path.map(|_| args.proof_type),
                     verbose: args.verbose,
-                    circuit_explanation_type: args.circuit_explanation_type,
                     all_different_decomposition: args.all_different_decomposition,
                 },
                 ResolutionResolver::new(should_minimise_nogoods),
@@ -557,7 +550,6 @@ fn run() -> PumpkinResult<()> {
                     optimisation_strategy: args.optimisation_strategy,
                     proof_type: args.proof_path.map(|_| args.proof_type),
                     verbose: args.verbose,
-                    circuit_explanation_type: args.circuit_explanation_type,
                     all_different_decomposition: args.all_different_decomposition,
                 },
                 AllDecisionResolver::new(should_minimise_nogoods),

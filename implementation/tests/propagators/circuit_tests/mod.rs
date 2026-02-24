@@ -5,7 +5,6 @@ mod circuit_propagation_tests;
 use std::rc::Rc;
 
 use implementation::propagators::circuit::CircuitConstructor;
-use implementation::propagators::circuit::CircuitExplanationType;
 use pumpkin_checking::AtomicConstraint;
 use pumpkin_core::Random;
 use pumpkin_core::TestSolver;
@@ -133,6 +132,5 @@ pub(crate) fn add_circuit_propagator(
         successors: variables,
         constraint_tag,
         conflict_detection_only,
-        explanation_type: CircuitExplanationType::default(),
     })
 }

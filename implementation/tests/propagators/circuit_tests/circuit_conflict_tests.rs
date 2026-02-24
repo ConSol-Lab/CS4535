@@ -5,7 +5,6 @@
 )]
 
 use implementation::propagators::circuit::CircuitConstructor;
-use implementation::propagators::circuit::CircuitExplanationType;
 use pumpkin_core::state::State;
 
 use crate::Propagator;
@@ -70,7 +69,6 @@ fn circuit_hamiltonian_path_conflict_detection() {
         successors: vec![x, y, z].into(),
         constraint_tag,
         conflict_detection_only: true,
-        explanation_type: CircuitExplanationType::Direct,
     });
 
     let result = state.propagate_to_fixed_point();
