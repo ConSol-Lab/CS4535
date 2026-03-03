@@ -3,14 +3,21 @@
     reason = "Will be refactored in the future using the state API"
 )]
 mod model;
+use drcp_format::Deduction;
+use fzn_rs::InstanceError;
 use implementation::propagators::cumulative::Task;
+use implementation::resolvers::SupportingInference;
+use implementation::resolvers::verify_deduction;
 use pumpkin_checking::AtomicConstraint;
 use pumpkin_checking::InferenceChecker;
 use pumpkin_checking::VariableState;
+use pumpkin_core::Random;
 use pumpkin_core::TestSolver;
 use pumpkin_core::containers::HashMap;
 use pumpkin_core::predicate;
 use pumpkin_core::predicates::Predicate;
+use pumpkin_core::rand::SeedableRng;
+use pumpkin_core::rand::rngs::SmallRng;
 use pumpkin_core::variables::DomainId;
 
 mod all_different_tests;
@@ -18,6 +25,7 @@ mod circuit_tests;
 mod cumulative_tests;
 mod linear_tests;
 
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -51,15 +59,17 @@ use crate::propagators::model::Model;
 use crate::propagators::model::Term;
 use crate::propagators::model::parse_model;
 
-struct ProofTestRunner<'a> {
+pub(crate) struct ProofTestRunner<'a> {
     instance: &'a str,
     propagator: Propagator,
 
     run_checker: bool,
-    check_invalid_inferences: bool,
+    check_invalid: bool,
 
     check_conflicts: bool,
     check_propagations: bool,
+
+    check_deductions: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -100,6 +110,20 @@ pub(crate) enum CheckerError<'a> {
         propagator: Propagator,
         constraint: Constraint,
     },
+    #[error(
+        "The deduction checker was not able to check the deduction {deduction:#?} for instance {instance}"
+    )]
+    CouldNotCheckDeduction {
+        deduction: Deduction<Rc<str>, i32>,
+        instance: &'a str,
+    },
+    #[error(
+        "The deduction checker did not reject deduction {deduction:#?} for instance {instance}"
+    )]
+    DeductionCheckerDidNotReject {
+        deduction: Deduction<Rc<str>, i32>,
+        instance: &'a str,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,20 +134,21 @@ pub(crate) enum Propagator {
     AllDifferent,
 }
 
-const LINEAR_INSTANCES: [&str; 4] = [
+pub(crate) const LINEAR_INSTANCES: [&str; 4] = [
     "market_split_u3_01",
     "market_split_u3_02",
     "market_split_u3_03",
     "market_split_u3_04",
 ];
 
-const RCPSP_INSTANCES: [&str; 4] = ["rcpsp00", "rcpsp01", "rcpsp02", "rcpsp03"];
+pub(crate) const RCPSP_INSTANCES: [&str; 4] = ["rcpsp00", "rcpsp01", "rcpsp02", "rcpsp03"];
 
-const ALL_DIFFERENT_INSTANCES: [&str; 4] = ["sudoku_p0", "sudoku_p1", "sudoku_p3", "sudoku_p17"];
+pub(crate) const ALL_DIFFERENT_INSTANCES: [&str; 4] =
+    ["sudoku_p0", "sudoku_p1", "sudoku_p3", "sudoku_p17"];
 
-const TSP_INSTANCES: [&str; 4] = ["TSP_N5_3", "TSP_N10_0", "TSP_N10_1", "TSP_N10_2"];
+pub(crate) const TSP_INSTANCES: [&str; 4] = ["TSP_N5_3", "TSP_N10_0", "TSP_N10_1", "TSP_N10_2"];
 
-const TSP_DIRECT_INSTANCES: [&str; 4] = [
+pub(crate) const TSP_DIRECT_INSTANCES: [&str; 4] = [
     "TSP_N5_3_direct",
     "TSP_N10_0_direct",
     "TSP_N10_1_direct",
@@ -137,38 +162,70 @@ impl<'a> ProofTestRunner<'a> {
             propagator,
 
             run_checker: true,
-            check_invalid_inferences: false,
+            check_invalid: false,
             check_conflicts: false,
             check_propagations: false,
+
+            check_deductions: false,
         }
     }
 
     pub(crate) fn invalid_checks(mut self) -> Self {
         self.run_checker = true;
-        self.check_invalid_inferences = true;
+        self.check_invalid = true;
 
         self.check_conflicts = false;
         self.check_propagations = false;
+
+        self.check_deductions = false;
 
         self
     }
 
     pub(crate) fn check_conflicts_only(mut self) -> Self {
         self.run_checker = false;
-        self.check_invalid_inferences = false;
+        self.check_invalid = false;
 
         self.check_conflicts = true;
         self.check_propagations = false;
+
+        self.check_deductions = false;
 
         self
     }
 
     pub(crate) fn check_propagations_only(mut self) -> Self {
         self.run_checker = false;
-        self.check_invalid_inferences = false;
+        self.check_invalid = false;
 
         self.check_conflicts = false;
         self.check_propagations = true;
+
+        self.check_deductions = false;
+
+        self
+    }
+
+    pub(crate) fn check_deductions(mut self) -> Self {
+        self.run_checker = false;
+        self.check_invalid = false;
+
+        self.check_conflicts = false;
+        self.check_propagations = false;
+
+        self.check_deductions = true;
+
+        self
+    }
+
+    pub(crate) fn invalid_deductions_checks(mut self) -> Self {
+        self.run_checker = false;
+        self.check_invalid = true;
+
+        self.check_conflicts = false;
+        self.check_propagations = false;
+
+        self.check_deductions = true;
 
         self
     }
@@ -186,6 +243,8 @@ impl<'a> ProofTestRunner<'a> {
                 .unwrap_or_else(|_| panic!("Expected instance {proof_path:?} to exist")),
         ));
 
+        let mut fact_database = BTreeMap::new();
+
         loop {
             let step = reader.next_step().expect("proofs are readable and valid");
 
@@ -196,6 +255,14 @@ impl<'a> ProofTestRunner<'a> {
             match step {
                 drcp_format::Step::Inference(inference) => {
                     let label = inference.label.expect("all inferences have labels");
+
+                    {
+                        let fact = Fact {
+                            premises: inference.premises.iter().cloned().map(Into::into).collect(),
+                            consequent: inference.consequent.clone().map(Into::into),
+                        };
+                        let _ = fact_database.insert(inference.constraint_id, fact);
+                    }
 
                     // We do not check initial domains
                     if label.as_ref() == "initial_domain" || label.as_ref() == "nogood" {
@@ -223,7 +290,7 @@ impl<'a> ProofTestRunner<'a> {
                                         consequent: inference.consequent.clone().map(Into::into),
                                     };
                                     if self.run_checker {
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             invalidate_linear_fact(linear, &mut fact, &model);
                                         }
 
@@ -241,7 +308,7 @@ impl<'a> ProofTestRunner<'a> {
                                             variable_state,
                                         );
 
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             if result.is_ok() {
                                                 return Err(CheckerError::CheckerDidNotReject {
                                                     fact: fact.clone(),
@@ -338,7 +405,7 @@ impl<'a> ProofTestRunner<'a> {
                                             }
                                         };
 
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             invalidate_linear_fact(linear, &mut fact, &model);
 
                                             // Setup the state for a conflict check.
@@ -430,7 +497,7 @@ impl<'a> ProofTestRunner<'a> {
                                     };
 
                                     if self.run_checker {
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             invalidate_cumulative_fact(cumulative, &mut fact);
                                         }
 
@@ -470,7 +537,7 @@ impl<'a> ProofTestRunner<'a> {
                                             fact.consequent.as_ref(),
                                         );
 
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             if result {
                                                 return Err(CheckerError::CheckerDidNotReject {
                                                     fact: fact.clone(),
@@ -529,7 +596,7 @@ impl<'a> ProofTestRunner<'a> {
                                     };
 
                                     if self.run_checker {
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             if fact.premises.is_empty() {
                                                 continue;
                                             }
@@ -553,7 +620,7 @@ impl<'a> ProofTestRunner<'a> {
                                             fact.consequent.as_ref(),
                                         );
 
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             if result {
                                                 return Err(CheckerError::CheckerDidNotReject {
                                                     fact: fact.clone(),
@@ -614,7 +681,7 @@ impl<'a> ProofTestRunner<'a> {
                                     };
 
                                     if self.run_checker {
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             if fact.premises.is_empty() {
                                                 continue;
                                             }
@@ -639,7 +706,7 @@ impl<'a> ProofTestRunner<'a> {
                                             fact.consequent.as_ref(),
                                         );
 
-                                        if self.check_invalid_inferences {
+                                        if self.check_invalid {
                                             if result {
                                                 return Err(CheckerError::CheckerDidNotReject {
                                                     fact: fact.clone(),
@@ -689,7 +756,113 @@ impl<'a> ProofTestRunner<'a> {
                 }
 
                 // Only interested in inferences.
-                drcp_format::Step::Deduction(_) | drcp_format::Step::Conclusion(_) => {}
+                drcp_format::Step::Deduction(deduction) => {
+                    if self.check_deductions {
+                        let premises = deduction
+                            .premises
+                            .iter()
+                            .cloned()
+                            .map(Atomic::IntAtomic)
+                            .collect::<Vec<_>>();
+                        let mut inferences = deduction
+                            .sequence
+                            .iter()
+                            .map(|constraint_id| {
+                                let fact = fact_database.get(constraint_id).unwrap_or_else(|| {
+                                    panic!("Expected fact with id {constraint_id:?} to exist in database")
+                                });
+
+                                SupportingInference {
+                                    premises: fact.premises.clone(),
+                                    consequent: fact.consequent.clone(),
+                                }
+                            })
+                            .collect::<Vec<_>>();
+
+                        if self.check_invalid {
+                            if premises.is_empty() {
+                                continue;
+                            }
+
+                            let mut rng =
+                                SmallRng::seed_from_u64((premises.len() + inferences.len()) as u64);
+
+                            loop {
+                                let mut state = VariableState::default();
+                                for premise in premises.iter() {
+                                    let _ = state.apply(premise);
+                                }
+
+                                let index = rng.generate_usize_in_range(0..inferences.len());
+                                for inference in inferences[0..index].iter() {
+                                    if let Some(consequent) = &inference.consequent {
+                                        let _ = state.apply(consequent);
+                                    }
+                                }
+
+                                let inference = &mut inferences[index];
+                                if inference.premises.is_empty() {
+                                    continue;
+                                }
+
+                                if inference
+                                    .premises
+                                    .iter()
+                                    .all(|atomic| state.is_true(atomic))
+                                {
+                                    let predicate_index =
+                                        rng.generate_usize_in_range(0..inference.premises.len());
+
+                                    let atomic = &mut inference.premises[predicate_index];
+
+                                    let id = atomic.identifier();
+                                    let comparison = atomic.comparison();
+
+                                    match comparison {
+                                        pumpkin_checking::Comparison::GreaterEqual
+                                        | pumpkin_checking::Comparison::Equal => {
+                                            atomic.set_value(
+                                                state.lower_bound(&id).as_int().unwrap() + 1,
+                                            );
+                                        }
+                                        pumpkin_checking::Comparison::LessEqual => atomic
+                                            .set_value(
+                                                state.upper_bound(&id).as_int().unwrap() - 1,
+                                            ),
+                                        pumpkin_checking::Comparison::NotEqual => {
+                                            atomic.set_value(
+                                                state.lower_bound(&id).as_int().unwrap(),
+                                            );
+                                        }
+                                    }
+
+                                    assert!(
+                                        !inference
+                                            .premises
+                                            .iter()
+                                            .all(|atomic| state.is_true(atomic))
+                                    );
+
+                                    break;
+                                }
+                            }
+                        }
+
+                        let result = verify_deduction(premises, inferences);
+                        if self.check_invalid && result {
+                            return Err(CheckerError::DeductionCheckerDidNotReject {
+                                deduction: deduction.clone(),
+                                instance: self.instance,
+                            });
+                        } else if !self.check_invalid && !result {
+                            return Err(CheckerError::CouldNotCheckDeduction {
+                                deduction: deduction.clone(),
+                                instance: self.instance,
+                            });
+                        }
+                    }
+                }
+                drcp_format::Step::Conclusion(_) => {}
             }
         }
 

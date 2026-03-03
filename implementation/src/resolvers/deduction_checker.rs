@@ -1,4 +1,5 @@
 use pumpkin_checking::AtomicConstraint;
+use pumpkin_checking::VariableState;
 
 /// An inference used to support a deduction.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,8 +16,9 @@ pub struct SupportingInference<Atomic> {
 pub fn verify_deduction<Atomic>(
     _premises: impl IntoIterator<Item = Atomic>,
     _inferences: impl IntoIterator<Item = SupportingInference<Atomic>>,
-) where
-    Atomic: AtomicConstraint,
+) -> bool
+where
+    Atomic: AtomicConstraint + Clone,
 {
     todo!()
 }
