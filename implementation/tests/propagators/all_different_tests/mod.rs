@@ -30,7 +30,6 @@ mod all_different_conflict_tests;
 mod all_different_propagation_tests;
 
 pub(crate) fn invalidate_all_different_fact(all_different: &AllDifferent, fact: &mut Fact) {
-    println!("INVALIDATING");
     // We create some random generator
     let seed = all_different.variables.len() as u64
         + fact.premises.len() as u64
