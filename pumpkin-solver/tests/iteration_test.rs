@@ -32,7 +32,7 @@ fn iterator_finds_all_solutions() {
     let mut termination = Indefinite;
     // And we create a search strategy (in this case, simply the default)
     let mut brancher = solver.default_brancher();
-    let mut resolver = ResolutionResolver::default();
+    let mut resolver = ResolutionResolver::new();
 
     // Then we solve to satisfaction
     let mut solution_iterator =

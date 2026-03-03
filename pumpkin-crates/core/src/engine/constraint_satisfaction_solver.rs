@@ -29,6 +29,7 @@ use crate::branching::Brancher;
 use crate::branching::SelectionContext;
 use crate::conflict_resolving::ConflictAnalysisContext;
 use crate::conflict_resolving::ConflictResolver;
+use crate::conflict_resolving::NogoodMinimiser;
 use crate::containers::HashMap;
 use crate::containers::HashSet;
 use crate::declare_inference_label;
@@ -108,11 +109,12 @@ pub struct ConstraintSatisfactionSolver {
     pub(crate) internal_parameters: SatisfactionSolverOptions,
     /// A map from predicates that are propagated at the root to inference codes in the proof.
     pub(crate) unit_nogood_inference_codes: HashMap<Predicate, InferenceCode>,
+    pub(crate) minimiser: Option<Box<dyn NogoodMinimiser>>,
 }
 
 impl Default for ConstraintSatisfactionSolver {
     fn default() -> Self {
-        ConstraintSatisfactionSolver::new(SatisfactionSolverOptions::default())
+        ConstraintSatisfactionSolver::new(SatisfactionSolverOptions::default(), None)
     }
 }
 
@@ -228,6 +230,9 @@ impl ConstraintSatisfactionSolver {
             nogood_propagator_handle: self.nogood_propagator_handle,
 
             rng: &mut self.internal_parameters.random_generator,
+
+            minimiser: self.minimiser.as_mut(),
+            should_minimise: self.internal_parameters.should_minimise_nogoods,
         };
 
         let conflict = conflict_analysis_context.get_conflict_nogood();
@@ -249,7 +254,10 @@ impl ConstraintSatisfactionSolver {
 
 // methods that offer basic functionality
 impl ConstraintSatisfactionSolver {
-    pub fn new(solver_options: SatisfactionSolverOptions) -> Self {
+    pub fn new(
+        solver_options: SatisfactionSolverOptions,
+        minimiser: Option<Box<dyn NogoodMinimiser>>,
+    ) -> Self {
         let mut state = State::default();
         let handle = state.add_propagator(NogoodPropagatorConstructor::new(
             (solver_options.memory_preallocated * 1_000_000) / size_of::<PredicateId>(),
@@ -265,6 +273,7 @@ impl ConstraintSatisfactionSolver {
             unit_nogood_inference_codes: Default::default(),
             internal_parameters: solver_options,
             state,
+            minimiser,
         }
     }
 
@@ -488,6 +497,9 @@ impl ConstraintSatisfactionSolver {
                     nogood_propagator_handle: self.nogood_propagator_handle,
 
                     rng: &mut self.internal_parameters.random_generator,
+
+                    minimiser: self.minimiser.as_mut(),
+                    should_minimise: self.internal_parameters.should_minimise_nogoods,
                 };
                 let mut predicates = context.get_conflict_nogood();
                 let mut core: HashSet<Predicate> = HashSet::default();
@@ -725,6 +737,8 @@ impl ConstraintSatisfactionSolver {
             state: &mut self.state,
             nogood_propagator_handle: self.nogood_propagator_handle,
             rng: &mut self.internal_parameters.random_generator,
+            minimiser: self.minimiser.as_mut(),
+            should_minimise: self.internal_parameters.should_minimise_nogoods,
         };
 
         resolver.resolve_conflict(&mut conflict_analysis_context);

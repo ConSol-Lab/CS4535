@@ -17,6 +17,7 @@ use crate::branching::variable_selection::RandomSelector;
 use crate::branching::variable_selection::VariableSelector;
 use crate::conflict_resolving::ConflictAnalysisContext;
 use crate::conflict_resolving::ConflictResolver;
+use crate::conflict_resolving::NogoodMinimiser;
 use crate::constraints::ConstraintPoster;
 use crate::containers::HashSet;
 use crate::engine::ConstraintSatisfactionSolver;
@@ -113,7 +114,20 @@ impl Default for Solver {
 impl Solver {
     /// Creates a solver with the provided [`SolverOptions`].
     pub fn with_options(solver_options: SolverOptions) -> Self {
-        let satisfaction_solver = ConstraintSatisfactionSolver::new(solver_options);
+        let satisfaction_solver = ConstraintSatisfactionSolver::new(solver_options, None);
+        let true_literal = Literal::new(Predicate::trivially_true().get_domain());
+        Self {
+            satisfaction_solver,
+            true_literal,
+        }
+    }
+
+    pub fn with_options_and_minimiser(
+        solver_options: SolverOptions,
+        minimiser: Box<dyn NogoodMinimiser>,
+    ) -> Self {
+        let satisfaction_solver =
+            ConstraintSatisfactionSolver::new(solver_options, Some(minimiser));
         let true_literal = Literal::new(Predicate::trivially_true().get_domain());
         Self {
             satisfaction_solver,
@@ -601,6 +615,11 @@ impl Solver {
                 .satisfaction_solver
                 .internal_parameters
                 .random_generator,
+            minimiser: self.satisfaction_solver.minimiser.as_mut(),
+            should_minimise: self
+                .satisfaction_solver
+                .internal_parameters
+                .should_minimise_nogoods,
         }
     }
 }

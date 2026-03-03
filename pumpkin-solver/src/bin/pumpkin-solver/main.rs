@@ -10,6 +10,7 @@ use std::time::Duration;
 use clap::Parser;
 use clap::ValueEnum;
 use file_format::FileFormat;
+use implementation::minimisers::SemanticMinimiser;
 use implementation::resolvers::AllDecisionResolver;
 use implementation::resolvers::NoLearningResolver;
 use implementation::resolvers::ResolutionResolver;
@@ -476,12 +477,8 @@ fn run() -> PumpkinResult<()> {
         activity_bump_increment: 1.0,
     };
 
-    let should_minimise_nogoods = if args.proof_type == ProofType::Full {
-        warn!("Recursive minimisation is disabled when logging the full proof.");
-        false
-    } else {
-        !args.no_learning_clause_minimisation
-    };
+    let should_minimise_nogoods = !args.no_learning_clause_minimisation;
+
     let solver_options = SolverOptions {
         // 1 MB is 1_000_000 bytes
         memory_preallocated: args.memory_preallocated,
@@ -501,7 +498,10 @@ fn run() -> PumpkinResult<()> {
     match file_format {
         FileFormat::FlatZinc => match args.conflict_resolver {
             ConflictResolverType::NoLearning => flatzinc::solve(
-                Solver::with_options(solver_options),
+                Solver::with_options_and_minimiser(
+                    solver_options,
+                    Box::new(SemanticMinimiser::new()),
+                ),
                 instance_path,
                 time_limit,
                 FlatZincOptions {
@@ -519,7 +519,10 @@ fn run() -> PumpkinResult<()> {
                 NoLearningResolver,
             )?,
             ConflictResolverType::UIP => flatzinc::solve(
-                Solver::with_options(solver_options),
+                Solver::with_options_and_minimiser(
+                    solver_options,
+                    Box::new(SemanticMinimiser::new()),
+                ),
                 instance_path,
                 time_limit,
                 FlatZincOptions {
@@ -534,10 +537,13 @@ fn run() -> PumpkinResult<()> {
                     verbose: args.verbose,
                     all_different_decomposition: args.all_different_decomposition,
                 },
-                ResolutionResolver::new(should_minimise_nogoods),
+                ResolutionResolver::new(),
             )?,
             ConflictResolverType::AllDecision => flatzinc::solve(
-                Solver::with_options(solver_options),
+                Solver::with_options_and_minimiser(
+                    solver_options,
+                    Box::new(SemanticMinimiser::new()),
+                ),
                 instance_path,
                 time_limit,
                 FlatZincOptions {
@@ -552,7 +558,7 @@ fn run() -> PumpkinResult<()> {
                     verbose: args.verbose,
                     all_different_decomposition: args.all_different_decomposition,
                 },
-                AllDecisionResolver::new(should_minimise_nogoods),
+                AllDecisionResolver::new(),
             )?,
         },
     }

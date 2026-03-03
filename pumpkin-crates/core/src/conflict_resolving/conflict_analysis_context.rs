@@ -8,6 +8,7 @@ use crate::branching::branchers::autonomous_search::AutonomousSearch;
 #[cfg(doc)]
 use crate::conflict_resolving::ConflictResolver;
 use crate::conflict_resolving::LearnedNogood;
+use crate::conflict_resolving::NogoodMinimiser;
 use crate::containers::HashMap;
 use crate::engine::Assignments;
 use crate::engine::ConstraintSatisfactionSolver;
@@ -52,6 +53,9 @@ pub struct ConflictAnalysisContext<'a> {
     pub(crate) nogood_propagator_handle: PropagatorHandle<NogoodPropagator>,
 
     pub(crate) rng: &'a mut dyn Random,
+
+    pub(crate) minimiser: Option<&'a mut Box<dyn NogoodMinimiser>>,
+    pub(crate) should_minimise: bool,
 }
 
 impl Debug for ConflictAnalysisContext<'_> {
@@ -210,7 +214,7 @@ impl ConflictAnalysisContext<'_> {
     /// which the solver backtracked.
     pub fn process_learned_nogood(
         &mut self,
-        learned_nogood_predicates: Vec<Predicate>,
+        mut learned_nogood_predicates: Vec<Predicate>,
         lbd: u32,
     ) -> usize {
         // important to notify about the conflict _before_ backtracking removes literals from
@@ -218,6 +222,16 @@ impl ConflictAnalysisContext<'_> {
         // conflict happened
         self.restart_strategy
             .notify_conflict(lbd, self.state.assignments.get_pruned_value_count());
+
+        if self.should_minimise {
+            let mut minimiser = std::mem::take(&mut self.minimiser);
+
+            if let Some(minimiser) = minimiser.as_mut() {
+                minimiser.minimise(self, &mut learned_nogood_predicates);
+            }
+
+            self.minimiser = minimiser
+        }
 
         let learned_nogood = LearnedNogood::create_from_vec(learned_nogood_predicates, self);
 

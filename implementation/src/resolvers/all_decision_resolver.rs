@@ -15,26 +15,23 @@ use pumpkin_core::propagation::ReadDomains;
 #[derive(Clone, Debug)]
 pub struct AllDecisionResolver {
     // TODO
-    _should_minimise: bool,
 }
 
-impl Default for AllDecisionResolver {
-    fn default() -> Self {
-        AllDecisionResolver::new(true)
+impl AllDecisionResolver {
+    #[allow(
+        clippy::new_without_default,
+        reason = "Might be non-default once implemented"
+    )]
+    #[allow(unused, reason = "Will be implemented in the assignment")]
+    pub fn new() -> Self {
+        Self {
+            // TODO
+        }
     }
 }
 
 impl ConflictResolver for AllDecisionResolver {
     fn resolve_conflict(&mut self, _context: &mut ConflictAnalysisContext) {
         todo!()
-    }
-}
-
-impl AllDecisionResolver {
-    pub fn new(should_minimise: bool) -> Self {
-        Self {
-            // TODO
-            _should_minimise: should_minimise,
-        }
     }
 }

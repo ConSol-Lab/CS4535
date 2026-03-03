@@ -21,26 +21,24 @@ use pumpkin_core::propagation::ReadDomains;
 #[derive(Clone, Debug)]
 pub struct ResolutionResolver {
     // TODO
-    _should_minimise: bool,
 }
 
-impl Default for ResolutionResolver {
-    fn default() -> Self {
-        ResolutionResolver::new(true)
+impl ResolutionResolver {
+    #[allow(
+        clippy::new_without_default,
+        reason = "Might be non-default once implemented"
+    )]
+    #[allow(unused, reason = "Will be implemented in the assignment")]
+    pub fn new() -> Self {
+        todo!();
+        Self {
+            // TODO
+        }
     }
 }
 
 impl ConflictResolver for ResolutionResolver {
     fn resolve_conflict(&mut self, _context: &mut ConflictAnalysisContext) {
         todo!()
-    }
-}
-
-impl ResolutionResolver {
-    pub fn new(should_minimise: bool) -> Self {
-        Self {
-            // TODO
-            _should_minimise: should_minimise,
-        }
     }
 }

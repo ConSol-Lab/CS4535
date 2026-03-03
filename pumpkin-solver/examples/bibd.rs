@@ -149,7 +149,7 @@ fn main() {
     }
 
     let mut brancher = solver.default_brancher();
-    let mut resolver = ResolutionResolver::default();
+    let mut resolver = ResolutionResolver::new();
 
     match solver.satisfy(&mut brancher, &mut Indefinite, &mut resolver) {
         SatisfactionResult::Satisfiable(satisfiable) => {
