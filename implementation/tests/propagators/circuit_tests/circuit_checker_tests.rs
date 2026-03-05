@@ -6,12 +6,12 @@ use drcp_format::IntAtomic;
 use implementation::propagators::circuit::CircuitChecker;
 use pumpkin_checking::InferenceChecker;
 use pumpkin_checking::VariableState;
+use pumpkin_core::conflict_resolving::Atomic;
 
 use crate::Propagator;
 use crate::propagators::ProofTestRunner;
 use crate::propagators::TSP_DIRECT_INSTANCES;
 use crate::propagators::TSP_INSTANCES;
-use crate::propagators::model::Atomic;
 use crate::propagators::model::Variable;
 
 #[test]

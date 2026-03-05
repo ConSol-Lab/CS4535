@@ -6,9 +6,8 @@ mod model;
 use drcp_format::Deduction;
 use implementation::propagators::cumulative::Task;
 use implementation::resolvers::AllDecisionResolver;
+use implementation::resolvers::DeductionCheckerImpl;
 use implementation::resolvers::ResolutionResolver;
-use implementation::resolvers::SupportingInference;
-use implementation::resolvers::verify_deduction;
 use pumpkin_checking::AtomicConstraint;
 use pumpkin_checking::InferenceChecker;
 use pumpkin_checking::VariableState;
@@ -16,6 +15,8 @@ use pumpkin_core::Random;
 use pumpkin_core::Solver;
 use pumpkin_core::TestSolver;
 use pumpkin_core::branching::Brancher;
+use pumpkin_core::conflict_resolving::DeductionChecker;
+use pumpkin_core::conflict_resolving::SupportingInference;
 use pumpkin_core::constraints::Constraint as _;
 use pumpkin_core::containers::HashMap;
 use pumpkin_core::options::ConflictResolverType;
@@ -46,6 +47,7 @@ use implementation::propagators::circuit::CircuitChecker;
 use implementation::propagators::cumulative::CumulativeChecker;
 use implementation::propagators::linear::LinearChecker;
 pub use linear_tests::set_up_linear_leq_state;
+use pumpkin_core::conflict_resolving::Atomic;
 
 use crate::propagators::all_different_tests::invalidate_all_different_fact;
 use crate::propagators::all_different_tests::recreate_conflict_all_different;
@@ -59,7 +61,6 @@ use crate::propagators::cumulative_tests::recreate_propagation_cumulative;
 use crate::propagators::linear_tests::invalidate_linear_fact;
 use crate::propagators::linear_tests::recreate_conflict_linear;
 use crate::propagators::linear_tests::recreate_propagation_linear;
-use crate::propagators::model::Atomic;
 use crate::propagators::model::Constraint;
 use crate::propagators::model::Fact;
 use crate::propagators::model::Linear;
@@ -1018,7 +1019,7 @@ impl<'a> ProofTestRunner<'a> {
                             }
                         }
 
-                        let result = verify_deduction(premises, inferences);
+                        let result = DeductionCheckerImpl::verify_deduction(premises, inferences);
                         if self.check_invalid && result {
                             return Err(CheckerError::DeductionCheckerDidNotReject {
                                 deduction: deduction.clone(),
