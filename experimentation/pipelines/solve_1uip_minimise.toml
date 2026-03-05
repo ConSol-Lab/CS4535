@@ -1,0 +1,6 @@
+binaries = ["pumpkin-solver"]
+
+[[step]]
+name = "solve"
+command = "@bin:pumpkin-solver -sa @bench:1 --conflict-resolver=uip --nogood-minimisation"
+timeout = 150 # 2.5 minutes

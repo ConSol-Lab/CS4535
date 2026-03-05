@@ -70,6 +70,34 @@ uv run init_experiment solve_all_different_decomposition sudoku
 
 ---
 
+# Assignment 3
+
+## No Learning 
+Please run the following commands:
+```bash
+uv run init_experiment solve_linear linear 
+```
+
+## 1UIP Learning 
+Please run the following commands:
+```bash
+uv run init_experiment solve_1uip linear 
+```
+
+## All-decision Learning 
+Please run the following commands:
+```bash
+uv run init_experiment solve_all_decision linear 
+```
+
+## 1UIP Learning with minimisation
+Please run the following commands:
+```bash
+uv run init_experiment solve_1uip_minimise linear 
+```
+
+---
+
 # Run experiments
 Now that you have initialised the experiments (with the name `<EXPERIMENT_NAME>`), you can run the experiments using the following command:
 ```bash
