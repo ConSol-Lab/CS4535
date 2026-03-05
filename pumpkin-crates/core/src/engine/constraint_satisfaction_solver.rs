@@ -517,14 +517,13 @@ impl ConstraintSatisfactionSolver {
                         continue;
                     }
 
-                    ConflictAnalysisContext::get_propagation_reason_inner(
+                    predicates.extend(ConflictAnalysisContext::get_propagation_reason_inner(
                         predicate,
                         CurrentNogood::empty(),
                         context.proof_log,
                         context.unit_nogood_inference_codes,
-                        &mut predicates,
                         context.state,
-                    );
+                    ));
                 }
 
                 CoreExtractionResult::Core(core.into_iter().collect())

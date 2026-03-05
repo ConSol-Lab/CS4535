@@ -19,6 +19,7 @@ use crate::containers::HashMap;
 use crate::engine::Assignments;
 use crate::engine::ConstraintSatisfactionSolver;
 use crate::engine::EmptyDomainConflict;
+use crate::engine::Lbd;
 use crate::engine::RestartStrategy;
 use crate::engine::State;
 use crate::engine::TrailedValues;
@@ -155,16 +156,14 @@ impl ConflictAnalysisContext<'_> {
         &mut self,
         predicate: Predicate,
         current_nogood: CurrentNogood<'_>,
-        reason_buffer: &mut (impl Extend<Predicate> + AsRef<[Predicate]>),
-    ) {
+    ) -> Vec<Predicate> {
         Self::get_propagation_reason_inner(
             predicate,
             current_nogood,
             self.proof_log,
             self.unit_nogood_inference_codes,
-            reason_buffer,
             self.state,
-        );
+        )
     }
 
     /// Returns the last decision which was made by the solver (if such a decision exists).
@@ -249,7 +248,6 @@ impl ConflictAnalysisContext<'_> {
     pub fn process_learned_nogood(
         &mut self,
         mut learned_nogood_predicates: Vec<Predicate>,
-        lbd: u32,
         supporting_inferences: Vec<SupportingInference>,
     ) -> usize {
         assert!(
@@ -269,12 +267,6 @@ impl ConflictAnalysisContext<'_> {
             "Only one predicate in the provided nogood should be of the current decision level"
         );
 
-        // important to notify about the conflict _before_ backtracking removes literals from
-        // the trail -> although in the current version this does nothing but notify that a
-        // conflict happened
-        self.restart_strategy
-            .notify_conflict(lbd, self.state.assignments.get_pruned_value_count());
-
         if self.should_minimise {
             let mut minimiser = std::mem::take(&mut self.minimiser);
 
@@ -284,6 +276,14 @@ impl ConflictAnalysisContext<'_> {
 
             self.minimiser = minimiser
         }
+
+        // important to notify about the conflict _before_ backtracking removes literals from
+        // the trail -> although in the current version this does nothing but notify that a
+        // conflict happened
+        self.restart_strategy.notify_conflict(
+            Lbd::default().compute_lbd(&learned_nogood_predicates, self),
+            self.state.assignments.get_pruned_value_count(),
+        );
 
         let learned_nogood = LearnedNogood::create_from_vec(learned_nogood_predicates, self);
 
@@ -354,10 +354,12 @@ impl ConflictAnalysisContext<'_> {
         current_nogood: CurrentNogood<'_>,
         proof_log: &mut ProofLog,
         unit_nogood_inference_codes: &HashMap<Predicate, InferenceCode>,
-        reason_buffer: &mut (impl Extend<Predicate> + AsRef<[Predicate]>),
         state: &mut State,
-    ) {
-        let trail_index = state.get_propagation_reason(predicate, reason_buffer, current_nogood);
+    ) -> Vec<Predicate> {
+        let mut reason_buffer = Vec::new();
+
+        let trail_index =
+            state.get_propagation_reason(predicate, &mut reason_buffer, current_nogood);
 
         if let Some(trail_index) = trail_index {
             let trail_entry = state.assignments.get_trail_entry(trail_index);
@@ -371,7 +373,7 @@ impl ConflictAnalysisContext<'_> {
                 .propagators
                 .as_propagator_handle::<NogoodPropagator>(propagator_id)
                 .is_some()
-                && reason_buffer.as_ref().is_empty()
+                && reason_buffer.is_empty()
             {
                 // This means that a unit nogood was propagated, we indicate that this nogood step
                 // was used
@@ -404,13 +406,15 @@ impl ConflictAnalysisContext<'_> {
                 let _ = proof_log.log_inference(
                     &mut state.constraint_tags,
                     inference_code,
-                    reason_buffer.as_ref().iter().copied(),
+                    reason_buffer.iter().copied(),
                     Some(predicate),
                     &state.variable_names,
                     &state.assignments,
                 );
             }
         }
+
+        reason_buffer
     }
 
     fn compute_conflict_nogood(

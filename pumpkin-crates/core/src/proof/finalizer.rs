@@ -102,14 +102,13 @@ fn finalize_proof_impl(
 
             // There must be some combination of other factors.
             let mut reason = vec![];
-            ConflictAnalysisContext::get_propagation_reason_inner(
+            reason.extend(ConflictAnalysisContext::get_propagation_reason_inner(
                 predicate,
                 CurrentNogood::empty(),
                 context.proof_log,
                 context.unit_nogood_inference_codes,
-                &mut reason,
                 context.state,
-            );
+            ));
 
             // Look for the reasons of the propagation premise.
             for predicate in reason {
