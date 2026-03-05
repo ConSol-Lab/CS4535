@@ -450,6 +450,10 @@ impl Model {
         self.variables.get(name).expect("Variable should exist")
     }
 
+    pub(crate) fn iter_domains(&self) -> impl Iterator<Item = (&Rc<str>, &Domain)> {
+        self.variables.iter()
+    }
+
     /// Add a new constraint to the model.
     ///
     /// If a constraint with the given ID already exists, this returns false. Otherwise, the

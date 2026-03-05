@@ -96,7 +96,7 @@ use crate::statistics::log_statistic_postfix;
 #[derive(Debug)]
 pub struct Solver {
     /// The internal [`ConstraintSatisfactionSolver`] which is used to solve the problems.
-    pub(crate) satisfaction_solver: ConstraintSatisfactionSolver,
+    pub satisfaction_solver: ConstraintSatisfactionSolver,
     true_literal: Literal,
 }
 

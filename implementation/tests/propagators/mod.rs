@@ -4,21 +4,29 @@
 )]
 mod model;
 use drcp_format::Deduction;
-use fzn_rs::InstanceError;
 use implementation::propagators::cumulative::Task;
+use implementation::resolvers::AllDecisionResolver;
+use implementation::resolvers::ResolutionResolver;
 use implementation::resolvers::SupportingInference;
 use implementation::resolvers::verify_deduction;
 use pumpkin_checking::AtomicConstraint;
 use pumpkin_checking::InferenceChecker;
 use pumpkin_checking::VariableState;
 use pumpkin_core::Random;
+use pumpkin_core::Solver;
 use pumpkin_core::TestSolver;
+use pumpkin_core::branching::Brancher;
+use pumpkin_core::constraints::Constraint as _;
 use pumpkin_core::containers::HashMap;
+use pumpkin_core::options::ConflictResolverType;
 use pumpkin_core::predicate;
 use pumpkin_core::predicates::Predicate;
 use pumpkin_core::rand::SeedableRng;
 use pumpkin_core::rand::rngs::SmallRng;
+use pumpkin_core::results::SatisfactionResultUnderAssumptions;
+use pumpkin_core::termination::Indefinite;
 use pumpkin_core::variables::DomainId;
+use pumpkin_core::variables::TransformableVariable;
 
 mod all_different_tests;
 mod circuit_tests;
@@ -69,7 +77,10 @@ pub(crate) struct ProofTestRunner<'a> {
     check_conflicts: bool,
     check_propagations: bool,
 
+    check_learned_nogoods: bool,
     check_deductions: bool,
+
+    resolver: ConflictResolverType,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -166,7 +177,10 @@ impl<'a> ProofTestRunner<'a> {
             check_conflicts: false,
             check_propagations: false,
 
+            check_learned_nogoods: false,
             check_deductions: false,
+
+            resolver: ConflictResolverType::NoLearning,
         }
     }
 
@@ -177,6 +191,7 @@ impl<'a> ProofTestRunner<'a> {
         self.check_conflicts = false;
         self.check_propagations = false;
 
+        self.check_learned_nogoods = false;
         self.check_deductions = false;
 
         self
@@ -189,6 +204,7 @@ impl<'a> ProofTestRunner<'a> {
         self.check_conflicts = true;
         self.check_propagations = false;
 
+        self.check_learned_nogoods = false;
         self.check_deductions = false;
 
         self
@@ -201,6 +217,7 @@ impl<'a> ProofTestRunner<'a> {
         self.check_conflicts = false;
         self.check_propagations = true;
 
+        self.check_learned_nogoods = false;
         self.check_deductions = false;
 
         self
@@ -213,6 +230,7 @@ impl<'a> ProofTestRunner<'a> {
         self.check_conflicts = false;
         self.check_propagations = false;
 
+        self.check_learned_nogoods = false;
         self.check_deductions = true;
 
         self
@@ -225,7 +243,23 @@ impl<'a> ProofTestRunner<'a> {
         self.check_conflicts = false;
         self.check_propagations = false;
 
+        self.check_learned_nogoods = false;
         self.check_deductions = true;
+
+        self
+    }
+
+    pub(crate) fn check_nogoods(mut self, resolver: ConflictResolverType) -> Self {
+        self.run_checker = false;
+        self.check_invalid = false;
+
+        self.check_conflicts = false;
+        self.check_propagations = false;
+
+        self.check_learned_nogoods = true;
+        self.check_deductions = false;
+
+        self.resolver = resolver;
 
         self
     }
@@ -757,6 +791,142 @@ impl<'a> ProofTestRunner<'a> {
 
                 // Only interested in inferences.
                 drcp_format::Step::Deduction(deduction) => {
+                    if self.check_learned_nogoods {
+                        let mut solver = Solver::default();
+                        let mut variables = HashMap::new();
+                        for (name, domain) in model.iter_domains() {
+                            if !variables.contains_key(name) {
+                                let domain_id = match domain {
+                                    fzn_rs::ast::Domain::UnboundedInt => todo!(),
+                                    fzn_rs::ast::Domain::Int(range_list) => solver
+                                        .new_named_bounded_integer(
+                                            *range_list.lower_bound() as i32,
+                                            *range_list.upper_bound() as i32,
+                                            name.to_string(),
+                                        ),
+                                    fzn_rs::ast::Domain::Bool => {
+                                        solver.new_named_bounded_integer(0, 1, name.to_string())
+                                    }
+                                };
+                                let _ = variables.insert(name.clone(), domain_id);
+                            }
+                        }
+
+                        for (constraint_id, constraint) in model.iter_constraints() {
+                            let constraint_tag = solver.new_constraint_tag();
+                            match constraint {
+                                Constraint::Nogood(nogood) => todo!(),
+                                Constraint::LinearLeq(linear) => {
+                                    let vars = linear
+                                        .terms
+                                        .iter()
+                                        .map(|term| {
+                                            match &term.variable.0 {
+                                                fzn_rs::VariableExpr::Identifier(id) => {
+                                                    *variables.get(id).unwrap()
+                                                }
+                                                fzn_rs::VariableExpr::Constant(constant) => {
+                                                    solver.new_bounded_integer(*constant, *constant)
+                                                }
+                                            }
+                                            .scaled(term.weight.into())
+                                        })
+                                        .collect::<Vec<_>>();
+                                    let result = pumpkin_constraints::less_than_or_equals(
+                                        vars,
+                                        linear.bound,
+                                        constraint_tag,
+                                        false,
+                                    )
+                                    .post(&mut solver);
+                                    if result.is_err() {
+                                        panic!("Problem is UNSAT")
+                                    }
+                                }
+                                Constraint::LinearEq(linear) => {
+                                    let vars = linear
+                                        .terms
+                                        .iter()
+                                        .map(|term| {
+                                            match &term.variable.0 {
+                                                fzn_rs::VariableExpr::Identifier(id) => {
+                                                    *variables.get(id).unwrap()
+                                                }
+                                                fzn_rs::VariableExpr::Constant(constant) => {
+                                                    solver.new_bounded_integer(*constant, *constant)
+                                                }
+                                            }
+                                            .scaled(term.weight.into())
+                                        })
+                                        .collect::<Vec<_>>();
+                                    let result = pumpkin_constraints::equals(
+                                        vars,
+                                        linear.bound,
+                                        constraint_tag,
+                                        false,
+                                    )
+                                    .post(&mut solver);
+
+                                    if result.is_err() {
+                                        panic!("Problem is UNSAT")
+                                    }
+                                }
+                                Constraint::Cumulative(_cumulative) => todo!(),
+                                Constraint::AllDifferent(_all_different) => todo!(),
+                                Constraint::Circuit(_circuit) => todo!(),
+                                Constraint::Element(_element) => todo!(),
+                            }
+                        }
+
+                        let assumptions = deduction
+                            .premises
+                            .iter()
+                            .map(|premise| {
+                                let domain = *variables.get(&premise.name).unwrap();
+
+                                match premise.comparison {
+                                    drcp_format::IntComparison::GreaterEqual => {
+                                        predicate!(domain >= premise.value)
+                                    }
+                                    drcp_format::IntComparison::LessEqual => {
+                                        predicate!(domain <= premise.value)
+                                    }
+                                    drcp_format::IntComparison::Equal => {
+                                        predicate!(domain == premise.value)
+                                    }
+                                    drcp_format::IntComparison::NotEqual => {
+                                        predicate!(domain != premise.value)
+                                    }
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        let mut brancher = DummyBrancher;
+                        match self.resolver {
+                            ConflictResolverType::NoLearning => todo!(),
+                            ConflictResolverType::UIP => {
+                                let mut resolver = ResolutionResolver::new();
+                                let result = solver.satisfy_under_assumptions(
+                                    &mut brancher,
+                                    &mut Indefinite,
+                                    &mut resolver,
+                                    &assumptions,
+                                );
+                                assert!(matches!(result, SatisfactionResultUnderAssumptions::UnsatisfiableUnderAssumptions(_)));
+                            }
+                            ConflictResolverType::AllDecision => {
+                                let mut resolver = AllDecisionResolver::new();
+                                let result = solver.satisfy_under_assumptions(
+                                    &mut brancher,
+                                    &mut Indefinite,
+                                    &mut resolver,
+                                    &assumptions,
+                                );
+
+                                assert!(matches!(result, SatisfactionResultUnderAssumptions::UnsatisfiableUnderAssumptions(_)));
+                            }
+                        }
+                    }
+
                     if self.check_deductions {
                         let premises = deduction
                             .premises
@@ -957,5 +1127,20 @@ impl<'a> ProofTestRunner<'a> {
         }
 
         (solver, variables)
+    }
+}
+
+struct DummyBrancher;
+
+impl Brancher for DummyBrancher {
+    fn next_decision(
+        &mut self,
+        _context: &mut pumpkin_core::branching::SelectionContext,
+    ) -> Option<Predicate> {
+        return None;
+    }
+
+    fn subscribe_to_events(&self) -> Vec<pumpkin_core::branching::BrancherEvent> {
+        vec![]
     }
 }
