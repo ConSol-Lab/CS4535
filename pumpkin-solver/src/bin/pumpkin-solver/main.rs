@@ -151,8 +151,8 @@ struct Args {
     /// If this flag is present then the minimisation is turned off.
     ///
     /// Possible values: bool
-    #[arg(long = "no-learning-minimise", verbatim_doc_comment)]
-    no_learning_clause_minimisation: bool,
+    #[arg(long = "learning-minimise", verbatim_doc_comment)]
+    nogood_minimisation: bool,
 
     /// Decides the sequence based on which the restarts are performed.
     ///
@@ -478,7 +478,7 @@ fn run() -> PumpkinResult<()> {
         activity_bump_increment: 1.0,
     };
 
-    let should_minimise_nogoods = !args.no_learning_clause_minimisation;
+    let should_minimise_nogoods = args.nogood_minimisation;
 
     let solver_options = SolverOptions {
         // 1 MB is 1_000_000 bytes
