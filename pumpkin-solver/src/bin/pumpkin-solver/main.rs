@@ -12,6 +12,7 @@ use clap::ValueEnum;
 use file_format::FileFormat;
 use implementation::minimisers::SemanticMinimiser;
 use implementation::resolvers::AllDecisionResolver;
+use implementation::resolvers::DeductionCheckerImpl;
 use implementation::resolvers::NoLearningResolver;
 use implementation::resolvers::ResolutionResolver;
 use log::LevelFilter;
@@ -501,6 +502,7 @@ fn run() -> PumpkinResult<()> {
                 Solver::with_options_and_minimiser(
                     solver_options,
                     Box::new(SemanticMinimiser::new()),
+                    Box::new(DeductionCheckerImpl),
                 ),
                 instance_path,
                 time_limit,
@@ -522,6 +524,7 @@ fn run() -> PumpkinResult<()> {
                 Solver::with_options_and_minimiser(
                     solver_options,
                     Box::new(SemanticMinimiser::new()),
+                    Box::new(DeductionCheckerImpl),
                 ),
                 instance_path,
                 time_limit,
@@ -543,6 +546,7 @@ fn run() -> PumpkinResult<()> {
                 Solver::with_options_and_minimiser(
                     solver_options,
                     Box::new(SemanticMinimiser::new()),
+                    Box::new(DeductionCheckerImpl),
                 ),
                 instance_path,
                 time_limit,

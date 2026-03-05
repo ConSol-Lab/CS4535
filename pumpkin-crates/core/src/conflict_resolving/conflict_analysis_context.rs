@@ -63,6 +63,7 @@ pub struct ConflictAnalysisContext<'a> {
 
     pub(crate) minimiser: Option<&'a mut Box<dyn NogoodMinimiser>>,
     pub(crate) should_minimise: bool,
+    pub(crate) deduction_checker: Option<&'a mut Box<dyn DeductionChecker>>,
 }
 
 impl Debug for ConflictAnalysisContext<'_> {
@@ -250,7 +251,6 @@ impl ConflictAnalysisContext<'_> {
         mut learned_nogood_predicates: Vec<Predicate>,
         lbd: u32,
         supporting_inferences: Vec<SupportingInference>,
-        deduction_checker: impl DeductionChecker,
     ) -> usize {
         assert!(
             !learned_nogood_predicates.is_empty(),
@@ -323,10 +323,23 @@ impl ConflictAnalysisContext<'_> {
         #[cfg(feature = "check-propagations")]
         {
             self.state.check_propagations(trail_len_before_nogood);
-            assert!(
-                deduction_checker
-                    .verify_deduction(learned_nogood.predicates, supporting_inferences)
-            )
+
+            let mut deduction_checker = std::mem::take(&mut self.deduction_checker);
+
+            if let Some(deduction_checker) = deduction_checker.as_mut() {
+                assert!(
+                    deduction_checker.verify_deduction(
+                        learned_nogood
+                            .predicates
+                            .iter()
+                            .map(|predicate| self.get_atomic_for_predicate(*predicate))
+                            .collect::<Vec<_>>(),
+                        supporting_inferences
+                    )
+                )
+            }
+
+            self.deduction_checker = deduction_checker
         }
 
         learned_nogood.backtrack_level

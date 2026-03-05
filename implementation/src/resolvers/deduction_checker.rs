@@ -1,3 +1,4 @@
+use pumpkin_core::conflict_resolving::Atomic;
 use pumpkin_core::conflict_resolving::DeductionChecker;
 use pumpkin_core::conflict_resolving::SupportingInference;
 
@@ -5,10 +6,10 @@ use pumpkin_core::conflict_resolving::SupportingInference;
 pub struct DeductionCheckerImpl;
 
 impl DeductionChecker for DeductionCheckerImpl {
-    fn verify_deduction<Atomic>(
+    fn verify_deduction(
         &self,
-        _premises: impl IntoIterator<Item = Atomic>,
-        _inferences: impl IntoIterator<Item = SupportingInference>,
+        _premises: Vec<Atomic>,
+        _inferences: Vec<SupportingInference>,
     ) -> bool {
         todo!()
     }

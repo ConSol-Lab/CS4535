@@ -1019,7 +1019,7 @@ impl<'a> ProofTestRunner<'a> {
                             }
                         }
 
-                        let result = DeductionCheckerImpl::verify_deduction(premises, inferences);
+                        let result = DeductionCheckerImpl.verify_deduction(premises, inferences);
                         if self.check_invalid && result {
                             return Err(CheckerError::DeductionCheckerDidNotReject {
                                 deduction: deduction.clone(),

@@ -6,7 +6,9 @@ mod conflict_resolver;
 mod learned_nogood;
 mod nogood_minimiser;
 
-pub use atomic::*;
+use std::fmt::Debug;
+
+pub use atomic::Atomic;
 pub use conflict_analysis_context::ConflictAnalysisContext;
 pub use conflict_resolver::ConflictResolver;
 pub(crate) use learned_nogood::LearnedNogood;
@@ -24,11 +26,11 @@ pub struct SupportingInference {
     pub consequent: Option<Atomic>,
 }
 
-pub trait DeductionChecker {
-    fn verify_deduction<Atomic>(
+pub trait DeductionChecker: Debug {
+    fn verify_deduction(
         &self,
-        _premises: impl IntoIterator<Item = Atomic>,
-        _inferences: impl IntoIterator<Item = SupportingInference>,
+        _premises: Vec<Atomic>,
+        _inferences: Vec<SupportingInference>,
     ) -> bool {
         todo!()
     }

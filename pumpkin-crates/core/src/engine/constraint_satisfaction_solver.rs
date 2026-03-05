@@ -29,6 +29,7 @@ use crate::branching::Brancher;
 use crate::branching::SelectionContext;
 use crate::conflict_resolving::ConflictAnalysisContext;
 use crate::conflict_resolving::ConflictResolver;
+use crate::conflict_resolving::DeductionChecker;
 use crate::conflict_resolving::NogoodMinimiser;
 use crate::containers::HashMap;
 use crate::containers::HashSet;
@@ -110,11 +111,12 @@ pub struct ConstraintSatisfactionSolver {
     /// A map from predicates that are propagated at the root to inference codes in the proof.
     pub(crate) unit_nogood_inference_codes: HashMap<Predicate, InferenceCode>,
     pub(crate) minimiser: Option<Box<dyn NogoodMinimiser>>,
+    pub(crate) deduction_checker: Option<Box<dyn DeductionChecker>>,
 }
 
 impl Default for ConstraintSatisfactionSolver {
     fn default() -> Self {
-        ConstraintSatisfactionSolver::new(SatisfactionSolverOptions::default(), None)
+        ConstraintSatisfactionSolver::new(SatisfactionSolverOptions::default(), None, None)
     }
 }
 
@@ -233,6 +235,8 @@ impl ConstraintSatisfactionSolver {
 
             minimiser: self.minimiser.as_mut(),
             should_minimise: self.internal_parameters.should_minimise_nogoods,
+
+            deduction_checker: self.deduction_checker.as_mut(),
         };
 
         let conflict = conflict_analysis_context.get_conflict_nogood();
@@ -257,6 +261,7 @@ impl ConstraintSatisfactionSolver {
     pub fn new(
         solver_options: SatisfactionSolverOptions,
         minimiser: Option<Box<dyn NogoodMinimiser>>,
+        deduction_checker: Option<Box<dyn DeductionChecker>>,
     ) -> Self {
         let mut state = State::default();
         let handle = state.add_propagator(NogoodPropagatorConstructor::new(
@@ -274,6 +279,7 @@ impl ConstraintSatisfactionSolver {
             internal_parameters: solver_options,
             state,
             minimiser,
+            deduction_checker,
         }
     }
 
@@ -500,6 +506,7 @@ impl ConstraintSatisfactionSolver {
 
                     minimiser: self.minimiser.as_mut(),
                     should_minimise: self.internal_parameters.should_minimise_nogoods,
+                    deduction_checker: self.deduction_checker.as_mut(),
                 };
                 let mut predicates = context.get_conflict_nogood();
                 let mut core: HashSet<Predicate> = HashSet::default();
@@ -739,6 +746,7 @@ impl ConstraintSatisfactionSolver {
             rng: &mut self.internal_parameters.random_generator,
             minimiser: self.minimiser.as_mut(),
             should_minimise: self.internal_parameters.should_minimise_nogoods,
+            deduction_checker: self.deduction_checker.as_mut(),
         };
 
         resolver.resolve_conflict(&mut conflict_analysis_context);
