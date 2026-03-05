@@ -1,14 +1,20 @@
 use std::fmt::Debug;
 
+use drcp_format::IntComparison;
+use pumpkin_checking::AtomicConstraint;
+
 use crate::Random;
 use crate::basic_types::StoredConflictInfo;
 use crate::branching::Brancher;
 #[cfg(doc)]
 use crate::branching::branchers::autonomous_search::AutonomousSearch;
+use crate::conflict_resolving::Atomic;
 #[cfg(doc)]
 use crate::conflict_resolving::ConflictResolver;
+use crate::conflict_resolving::DeductionChecker;
 use crate::conflict_resolving::LearnedNogood;
 use crate::conflict_resolving::NogoodMinimiser;
+use crate::conflict_resolving::SupportingInference;
 use crate::containers::HashMap;
 use crate::engine::Assignments;
 use crate::engine::ConstraintSatisfactionSolver;
@@ -16,6 +22,7 @@ use crate::engine::EmptyDomainConflict;
 use crate::engine::RestartStrategy;
 use crate::engine::State;
 use crate::engine::TrailedValues;
+use crate::engine::VariableNames;
 use crate::engine::constraint_satisfaction_solver::CSPSolverState;
 use crate::engine::constraint_satisfaction_solver::NogoodLabel;
 use crate::engine::predicates::predicate::Predicate;
@@ -210,13 +217,58 @@ impl ConflictAnalysisContext<'_> {
 }
 
 impl ConflictAnalysisContext<'_> {
+    pub fn get_atomic_for_predicate(&self, predicate: Predicate) -> Atomic {
+        if predicate == Predicate::trivially_true() {
+            Atomic::True
+        } else if predicate == Predicate::trivially_false() {
+            Atomic::False
+        } else {
+            let id = self
+                .state
+                .variable_names
+                .get_int_name(predicate.get_domain())
+                .map(|inner| inner.to_owned())
+                .unwrap_or_else(|| predicate.get_domain().to_string());
+            let comparison = match predicate.get_predicate_type() {
+                PredicateType::LowerBound => IntComparison::GreaterEqual,
+                PredicateType::UpperBound => IntComparison::LessEqual,
+                PredicateType::NotEqual => IntComparison::NotEqual,
+                PredicateType::Equal => IntComparison::Equal,
+            };
+            Atomic::IntAtomic(drcp_format::IntAtomic::new(
+                id.into(),
+                comparison,
+                predicate.value(),
+            ))
+        }
+    }
+
     /// Backtracks the solver and adds the learned nogood to the database, returning the level to
     /// which the solver backtracked.
     pub fn process_learned_nogood(
         &mut self,
         mut learned_nogood_predicates: Vec<Predicate>,
         lbd: u32,
+        supporting_inferences: Vec<SupportingInference>,
+        deduction_checker: impl DeductionChecker,
     ) -> usize {
+        assert!(
+            !learned_nogood_predicates.is_empty(),
+            "The provided nogood should not be empty"
+        );
+        assert_eq!(
+            learned_nogood_predicates
+                .iter()
+                .filter(|predicate| self
+                    .state
+                    .get_checkpoint_for_predicate(**predicate)
+                    .expect("Every predicate in the provided nogood should be currently true")
+                    == self.state.get_checkpoint())
+                .count(),
+            1,
+            "Only one predicate in the provided nogood should be of the current decision level"
+        );
+
         // important to notify about the conflict _before_ backtracking removes literals from
         // the trail -> although in the current version this does nothing but notify that a
         // conflict happened
@@ -269,7 +321,13 @@ impl ConflictAnalysisContext<'_> {
         );
 
         #[cfg(feature = "check-propagations")]
-        self.state.check_propagations(trail_len_before_nogood);
+        {
+            self.state.check_propagations(trail_len_before_nogood);
+            assert!(
+                deduction_checker
+                    .verify_deduction(learned_nogood.predicates, supporting_inferences)
+            )
+        }
 
         learned_nogood.backtrack_level
     }

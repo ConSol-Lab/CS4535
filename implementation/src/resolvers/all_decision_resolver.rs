@@ -1,7 +1,10 @@
 use pumpkin_core::conflict_resolving::ConflictAnalysisContext;
 use pumpkin_core::conflict_resolving::ConflictResolver;
+use pumpkin_core::predicates::Predicate;
 #[allow(unused, reason = "Will be used in the assignments")]
 use pumpkin_core::propagation::ReadDomains;
+
+use crate::resolvers::DeductionCheckerImpl;
 
 /// [`ConflictResolver`] which resolves conflicts according to the all-decision learning approach.
 ///

@@ -26,6 +26,7 @@ pub struct SupportingInference {
 
 pub trait DeductionChecker {
     fn verify_deduction<Atomic>(
+        &self,
         _premises: impl IntoIterator<Item = Atomic>,
         _inferences: impl IntoIterator<Item = SupportingInference>,
     ) -> bool {

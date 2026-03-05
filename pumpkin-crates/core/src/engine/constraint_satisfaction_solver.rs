@@ -707,7 +707,7 @@ impl ConstraintSatisfactionSolver {
         Ok(())
     }
 
-    pub fn new_checkpoint(&mut self) {
+    pub(crate) fn new_checkpoint(&mut self) {
         self.state.new_checkpoint();
     }
 

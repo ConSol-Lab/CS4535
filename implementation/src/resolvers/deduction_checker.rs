@@ -6,6 +6,7 @@ pub struct DeductionCheckerImpl;
 
 impl DeductionChecker for DeductionCheckerImpl {
     fn verify_deduction<Atomic>(
+        &self,
         _premises: impl IntoIterator<Item = Atomic>,
         _inferences: impl IntoIterator<Item = SupportingInference>,
     ) -> bool {
