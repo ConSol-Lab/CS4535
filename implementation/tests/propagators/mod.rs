@@ -4,6 +4,7 @@
 )]
 mod model;
 use drcp_format::Deduction;
+use implementation::minimisers::SemanticMinimiser;
 use implementation::propagators::cumulative::Task;
 use implementation::resolvers::AllDecisionResolver;
 use implementation::resolvers::DeductionCheckerImpl;
@@ -20,6 +21,7 @@ use pumpkin_core::conflict_resolving::SupportingInference;
 use pumpkin_core::constraints::Constraint as _;
 use pumpkin_core::containers::HashMap;
 use pumpkin_core::options::ConflictResolverType;
+use pumpkin_core::options::SolverOptions;
 use pumpkin_core::predicate;
 use pumpkin_core::predicates::Predicate;
 use pumpkin_core::rand::SeedableRng;
@@ -793,7 +795,14 @@ impl<'a> ProofTestRunner<'a> {
                 // Only interested in inferences.
                 drcp_format::Step::Deduction(deduction) => {
                     if self.check_learned_nogoods {
-                        let mut solver = Solver::default();
+                        let mut solver = Solver::with_options_and_minimiser(
+                            SolverOptions {
+                                should_minimise_nogoods: false,
+                                ..Default::default()
+                            },
+                            Box::new(SemanticMinimiser::new()),
+                            Box::new(DeductionCheckerImpl),
+                        );
                         let mut variables = HashMap::new();
                         for (name, domain) in model.iter_domains() {
                             if !variables.contains_key(name) {
@@ -813,7 +822,7 @@ impl<'a> ProofTestRunner<'a> {
                             }
                         }
 
-                        for (constraint_id, constraint) in model.iter_constraints() {
+                        for (_, constraint) in model.iter_constraints() {
                             let constraint_tag = solver.new_constraint_tag();
                             match constraint {
                                 Constraint::Nogood(nogood) => todo!(),
