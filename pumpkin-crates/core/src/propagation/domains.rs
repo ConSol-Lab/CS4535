@@ -155,6 +155,9 @@ pub trait ReadDomains {
 
     /// Returns the number of currently defined domains.
     fn number_of_domains(&self) -> u32;
+
+    /// Returns the trail position of the provided [`Predicate`].
+    fn trail_position(&self, predicate: Predicate) -> usize;
 }
 
 impl<T: HasAssignments> ReadDomains for T {
@@ -264,5 +267,13 @@ impl<T: HasAssignments> ReadDomains for T {
 
     fn number_of_domains(&self) -> u32 {
         self.assignments().num_domains()
+    }
+
+    fn trail_position(&self, predicate: Predicate) -> usize {
+        self.assignments()
+            .get_trail_position(&predicate)
+            .unwrap_or_else(|| {
+                panic!("Expected {predicate:?} to hold when retrieving its trail position")
+            })
     }
 }
