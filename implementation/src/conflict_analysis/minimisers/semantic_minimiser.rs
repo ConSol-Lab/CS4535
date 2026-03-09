@@ -7,18 +7,12 @@ use pumpkin_core::predicates::Predicate;
     reason = "Might not be copy after implementing"
 )]
 #[derive(Debug)]
-pub struct SemanticMinimiser {
-    // TODO
-}
+pub struct SemanticMinimiser {}
 
 impl SemanticMinimiser {
-    #[allow(unused, reason = "Will be implemented in the assignment")]
     #[allow(clippy::new_without_default, reason = "Might not be possible")]
     pub fn new() -> Self {
-        todo!();
-        Self {
-            // TODO
-        }
+        Self {}
     }
 }
 
