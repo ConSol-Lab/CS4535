@@ -19,25 +19,19 @@ use pumpkin_core::propagation::ReadDomains;
     reason = "Might be uncopyable once implemented"
 )]
 #[derive(Clone, Debug)]
-pub struct ResolutionResolver {
-    // TODO
-}
+pub struct OneUIP {}
 
-impl ResolutionResolver {
+impl OneUIP {
     #[allow(
         clippy::new_without_default,
         reason = "Might be non-default once implemented"
     )]
-    #[allow(unused, reason = "Will be implemented in the assignment")]
     pub fn new() -> Self {
-        todo!();
-        Self {
-            // TODO
-        }
+        Self {}
     }
 }
 
-impl ConflictResolver for ResolutionResolver {
+impl ConflictResolver for OneUIP {
     fn resolve_conflict(&mut self, _context: &mut ConflictAnalysisContext) {
         todo!()
     }

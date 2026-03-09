@@ -1,6 +1,6 @@
 #![cfg(test)]
 #![allow(deprecated, reason = "Solver can be used in the course.")]
-use implementation::minimisers::SemanticMinimiser;
+use implementation::conflict_analysis::SemanticMinimiser;
 use pumpkin_core::Solver;
 use pumpkin_core::branching::Brancher;
 use pumpkin_core::branching::BrancherEvent;

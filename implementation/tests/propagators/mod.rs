@@ -4,11 +4,11 @@
 )]
 mod model;
 use drcp_format::Deduction;
-use implementation::minimisers::SemanticMinimiser;
+use implementation::conflict_analysis::AllDecisionResolver;
+use implementation::conflict_analysis::DeductionCheckerImpl;
+use implementation::conflict_analysis::OneUIP;
+use implementation::conflict_analysis::SemanticMinimiser;
 use implementation::propagators::cumulative::Task;
-use implementation::resolvers::AllDecisionResolver;
-use implementation::resolvers::DeductionCheckerImpl;
-use implementation::resolvers::ResolutionResolver;
 use pumpkin_checking::AtomicConstraint;
 use pumpkin_checking::InferenceChecker;
 use pumpkin_checking::VariableState;
@@ -24,6 +24,7 @@ use pumpkin_core::options::ConflictResolverType;
 use pumpkin_core::options::SolverOptions;
 use pumpkin_core::predicate;
 use pumpkin_core::predicates::Predicate;
+#[allow(clippy::disallowed_types, reason = "Used for the assignment")]
 use pumpkin_core::rand::SeedableRng;
 use pumpkin_core::rand::rngs::SmallRng;
 use pumpkin_core::results::SatisfactionResultUnderAssumptions;
@@ -818,14 +819,14 @@ impl<'a> ProofTestRunner<'a> {
                                         solver.new_named_bounded_integer(0, 1, name.to_string())
                                     }
                                 };
-                                let _ = variables.insert(name.clone(), domain_id);
+                                let _ = variables.insert(Rc::clone(name), domain_id);
                             }
                         }
 
                         for (_, constraint) in model.iter_constraints() {
                             let constraint_tag = solver.new_constraint_tag();
                             match constraint {
-                                Constraint::Nogood(nogood) => todo!(),
+                                Constraint::Nogood(_) => todo!(),
                                 Constraint::LinearLeq(linear) => {
                                     let vars = linear
                                         .terms
@@ -914,7 +915,7 @@ impl<'a> ProofTestRunner<'a> {
                         match self.resolver {
                             ConflictResolverType::NoLearning => todo!(),
                             ConflictResolverType::UIP => {
-                                let mut resolver = ResolutionResolver::new();
+                                let mut resolver = OneUIP::new();
                                 let result = solver.satisfy_under_assumptions(
                                     &mut brancher,
                                     &mut Indefinite,
@@ -1147,7 +1148,7 @@ impl Brancher for DummyBrancher {
         &mut self,
         _context: &mut pumpkin_core::branching::SelectionContext,
     ) -> Option<Predicate> {
-        return None;
+        None
     }
 
     fn subscribe_to_events(&self) -> Vec<pumpkin_core::branching::BrancherEvent> {

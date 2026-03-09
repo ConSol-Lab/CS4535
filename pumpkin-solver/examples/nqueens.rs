@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use implementation::resolvers::ResolutionResolver;
+use implementation::conflict_analysis::OneUIP;
 use pumpkin_solver::Solver;
 use pumpkin_solver::core::options::SolverOptions;
 use pumpkin_solver::core::proof::ProofLog;
@@ -94,7 +94,7 @@ fn main() {
         .post();
 
     let mut brancher = solver.default_brancher();
-    let mut resolver = ResolutionResolver::new();
+    let mut resolver = OneUIP::new();
 
     match solver.satisfy(&mut brancher, &mut Indefinite, &mut resolver) {
         SatisfactionResult::Satisfiable(satisfiable) => {

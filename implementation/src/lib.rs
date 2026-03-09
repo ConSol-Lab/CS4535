@@ -1,4 +1,3 @@
 #![allow(deprecated, reason = "Test solver can be used in the course.")]
-pub mod minimisers;
+pub mod conflict_analysis;
 pub mod propagators;
-pub mod resolvers;

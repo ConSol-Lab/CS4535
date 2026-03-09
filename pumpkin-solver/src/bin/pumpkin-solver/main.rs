@@ -10,11 +10,11 @@ use std::time::Duration;
 use clap::Parser;
 use clap::ValueEnum;
 use file_format::FileFormat;
-use implementation::minimisers::SemanticMinimiser;
-use implementation::resolvers::AllDecisionResolver;
-use implementation::resolvers::DeductionCheckerImpl;
-use implementation::resolvers::NoLearningResolver;
-use implementation::resolvers::ResolutionResolver;
+use implementation::conflict_analysis::AllDecisionResolver;
+use implementation::conflict_analysis::DeductionCheckerImpl;
+use implementation::conflict_analysis::NoLearningResolver;
+use implementation::conflict_analysis::OneUIP;
+use implementation::conflict_analysis::SemanticMinimiser;
 use log::LevelFilter;
 use log::error;
 use log::info;
@@ -540,7 +540,7 @@ fn run() -> PumpkinResult<()> {
                     verbose: args.verbose,
                     all_different_decomposition: args.all_different_decomposition,
                 },
-                ResolutionResolver::new(),
+                OneUIP::new(),
             )?,
             ConflictResolverType::AllDecision => flatzinc::solve(
                 Solver::with_options_and_minimiser(

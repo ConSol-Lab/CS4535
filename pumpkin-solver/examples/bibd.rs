@@ -13,7 +13,7 @@
 //!
 //! Hence, the problem is defined in terms of v, k, and l.
 
-use implementation::resolvers::ResolutionResolver;
+use implementation::conflict_analysis::OneUIP;
 use pumpkin_solver::Solver;
 use pumpkin_solver::core::results::ProblemSolution;
 use pumpkin_solver::core::results::SatisfactionResult;
@@ -149,7 +149,7 @@ fn main() {
     }
 
     let mut brancher = solver.default_brancher();
-    let mut resolver = ResolutionResolver::new();
+    let mut resolver = OneUIP::new();
 
     match solver.satisfy(&mut brancher, &mut Indefinite, &mut resolver) {
         SatisfactionResult::Satisfiable(satisfiable) => {
