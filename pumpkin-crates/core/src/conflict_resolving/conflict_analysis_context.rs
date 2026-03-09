@@ -155,14 +155,10 @@ impl ConflictAnalysisContext<'_> {
     /// `reason_buffer`.
     ///
     /// If `predicate` is not true, or it is a decision, then this function will panic.
-    pub fn get_propagation_reason(
-        &mut self,
-        predicate: Predicate,
-        current_nogood: CurrentNogood<'_>,
-    ) -> Vec<Predicate> {
+    pub fn get_propagation_reason(&mut self, predicate: Predicate) -> Vec<Predicate> {
         Self::get_propagation_reason_inner(
             predicate,
-            current_nogood,
+            CurrentNogood::empty(),
             self.proof_log,
             self.unit_nogood_inference_codes,
             self.state,
