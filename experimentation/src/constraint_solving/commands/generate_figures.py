@@ -52,7 +52,7 @@ def generate_image(
         max_x_lim = max_x_lim if max_x_lim is not None else combined[f"{column_name}"].max()
         max_y_lim = max_y_lim if max_y_lim is not None else combined[f"{column_name}_right"].max()
 
-        max_lim = 1.5 * max(max_y_lim, max_x_lim)
+        max_lim = 1.05 * max(max_y_lim, max_x_lim)
 
         if log and (combined[column_name] > 0).any() and (combined[f"{column_name}_right"] > 0).any():
             plt.xlim(1e-1, max_lim)
@@ -133,7 +133,7 @@ def run(experiment_name: str, other_experiment_name: str) -> int:
 
     generate_image(config, experiment_name, other_experiment_name, combined, "failures")
     generate_image(
-        config, experiment_name, other_experiment_name, combined, "solveTime", max_x_lim=250, max_y_lim=250, log=False
+        config, experiment_name, other_experiment_name, combined, "solveTime", max_x_lim=150, max_y_lim=150, log=False
     )
 
     return 0
