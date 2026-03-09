@@ -16,7 +16,6 @@ use crate::conflict_resolving::DeductionChecker;
 use crate::conflict_resolving::LearnedNogood;
 use crate::conflict_resolving::NogoodMinimiser;
 use crate::conflict_resolving::SupportingInference;
-use crate::conflict_resolving::learned_nogood;
 use crate::containers::HashMap;
 use crate::engine::Assignments;
 use crate::engine::ConstraintSatisfactionSolver;

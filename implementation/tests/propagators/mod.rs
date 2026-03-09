@@ -9,7 +9,6 @@ use implementation::propagators::cumulative::Task;
 use pumpkin_checking::AtomicConstraint;
 use pumpkin_checking::InferenceChecker;
 use pumpkin_checking::VariableState;
-use pumpkin_core::Random;
 use pumpkin_core::TestSolver;
 use pumpkin_core::conflict_resolving::DeductionChecker;
 use pumpkin_core::conflict_resolving::SupportingInference;
@@ -17,9 +16,6 @@ use pumpkin_core::containers::HashMap;
 use pumpkin_core::options::ConflictResolverType;
 use pumpkin_core::predicate;
 use pumpkin_core::predicates::Predicate;
-#[allow(clippy::disallowed_types, reason = "Used for the assignment")]
-use pumpkin_core::rand::SeedableRng;
-use pumpkin_core::rand::rngs::SmallRng;
 use pumpkin_core::variables::DomainId;
 
 mod all_different_tests;
@@ -60,6 +56,7 @@ use crate::propagators::model::Linear;
 pub(crate) use crate::propagators::model::Model;
 use crate::propagators::model::Term;
 use crate::propagators::model::parse_model;
+use crate::resolvers::invalidate_nogood_deduction;
 use crate::resolvers::recreate_deduction;
 
 pub(crate) struct ProofTestRunner<'a> {
@@ -813,72 +810,7 @@ impl<'a> ProofTestRunner<'a> {
                             .collect::<Vec<_>>();
 
                         if self.check_invalid {
-                            if premises.is_empty() {
-                                continue;
-                            }
-
-                            let mut rng =
-                                SmallRng::seed_from_u64((premises.len() + inferences.len()) as u64);
-
-                            loop {
-                                let mut state = VariableState::default();
-                                for premise in premises.iter() {
-                                    let _ = state.apply(premise);
-                                }
-
-                                let index = rng.generate_usize_in_range(0..inferences.len());
-                                for inference in inferences[0..index].iter() {
-                                    if let Some(consequent) = &inference.consequent {
-                                        let _ = state.apply(consequent);
-                                    }
-                                }
-
-                                let inference = &mut inferences[index];
-                                if inference.premises.is_empty() {
-                                    continue;
-                                }
-
-                                if inference
-                                    .premises
-                                    .iter()
-                                    .all(|atomic| state.is_true(atomic))
-                                {
-                                    let predicate_index =
-                                        rng.generate_usize_in_range(0..inference.premises.len());
-
-                                    let atomic = &mut inference.premises[predicate_index];
-
-                                    let id = atomic.identifier();
-                                    let comparison = atomic.comparison();
-
-                                    match comparison {
-                                        pumpkin_checking::Comparison::GreaterEqual
-                                        | pumpkin_checking::Comparison::Equal => {
-                                            atomic.set_value(
-                                                state.lower_bound(&id).as_int().unwrap() + 1,
-                                            );
-                                        }
-                                        pumpkin_checking::Comparison::LessEqual => atomic
-                                            .set_value(
-                                                state.upper_bound(&id).as_int().unwrap() - 1,
-                                            ),
-                                        pumpkin_checking::Comparison::NotEqual => {
-                                            atomic.set_value(
-                                                state.lower_bound(&id).as_int().unwrap(),
-                                            );
-                                        }
-                                    }
-
-                                    assert!(
-                                        !inference
-                                            .premises
-                                            .iter()
-                                            .all(|atomic| state.is_true(atomic))
-                                    );
-
-                                    break;
-                                }
-                            }
+                            invalidate_nogood_deduction(&premises, &mut inferences);
                         }
 
                         let result = DeductionCheckerImpl.verify_deduction(premises, inferences);
