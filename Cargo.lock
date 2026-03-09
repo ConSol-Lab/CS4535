@@ -237,6 +237,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
+name = "colored_text"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a62f25f939069d43c25a069fde8e1dcfee5f0aaaaaee12a89f49adb9b68ac08f"
+
+[[package]]
 name = "convert_case"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -841,6 +847,7 @@ dependencies = [
  "bitfield",
  "bitfield-struct",
  "clap",
+ "colored_text",
  "convert_case",
  "downcast-rs",
  "drcp-format",

@@ -626,6 +626,8 @@ impl Solver {
                 .internal_parameters
                 .should_minimise_nogoods,
             deduction_checker: self.satisfaction_solver.deduction_checker.as_mut(),
+            resolver: self.satisfaction_solver.internal_parameters.resolver,
+            added_nogood: false,
         }
     }
 }

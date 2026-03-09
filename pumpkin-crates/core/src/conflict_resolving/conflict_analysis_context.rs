@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
+use colored_text::Colorize;
 use drcp_format::IntComparison;
-use log::warn;
 use pumpkin_checking::AtomicConstraint;
 
 use crate::Random;
@@ -18,6 +18,7 @@ use crate::conflict_resolving::NogoodMinimiser;
 use crate::conflict_resolving::SupportingInference;
 use crate::containers::HashMap;
 use crate::engine::Assignments;
+use crate::engine::ConflictResolverType;
 use crate::engine::ConstraintSatisfactionSolver;
 use crate::engine::EmptyDomainConflict;
 use crate::engine::Lbd;
@@ -67,6 +68,9 @@ pub struct ConflictAnalysisContext<'a> {
     pub(crate) should_minimise: bool,
     #[allow(unused, reason = "Used but behind a feature gate")]
     pub(crate) deduction_checker: Option<&'a mut Box<dyn DeductionChecker>>,
+
+    pub(crate) resolver: ConflictResolverType,
+    pub(crate) added_nogood: bool,
 }
 
 impl Debug for ConflictAnalysisContext<'_> {
@@ -241,12 +245,16 @@ impl ConflictAnalysisContext<'_> {
         }
     }
 
-    fn check_nogood_properties(&self, learned_nogood: &[Predicate]) -> bool {
+    fn check_nogood_properties(
+        &self,
+        learned_nogood: &[Predicate],
+        resolver: ConflictResolverType,
+    ) -> bool {
         let mut violated = false;
 
         if learned_nogood.is_empty() {
             violated = true;
-            warn!("The provided nogood should not be empty");
+            println!("{}", "The provided nogood should not be empty".red());
         }
 
         if learned_nogood
@@ -254,12 +262,16 @@ impl ConflictAnalysisContext<'_> {
             .any(|predicate| self.evaluate_predicate(*predicate) != Some(true))
         {
             violated = true;
-            warn!(
-                "The element {:?} in the provided nogood {:?} does not hold",
-                learned_nogood
-                    .iter()
-                    .find(|predicate| self.evaluate_predicate(**predicate) != Some(true)),
-                learned_nogood
+            println!(
+                "{}",
+                format!(
+                    "The element {:?} in the provided nogood {:?} does not hold",
+                    learned_nogood
+                        .iter()
+                        .find(|predicate| self.evaluate_predicate(**predicate) != Some(true)),
+                    learned_nogood
+                )
+                .red()
             );
         }
 
@@ -273,9 +285,26 @@ impl ConflictAnalysisContext<'_> {
             .count();
         if num_curr_checkpoint != 1 {
             violated = true;
-            warn!(
-                "Expected only 1 element from the current decision level in the nogood {learned_nogood:?}, but there were {num_curr_checkpoint}"
+            println!(
+                "{}", format!("Expected only 1 element from the current decision level in the nogood {learned_nogood:?}, but there were {num_curr_checkpoint}").red()
             )
+        }
+
+        match resolver {
+            ConflictResolverType::UIP => {}
+            ConflictResolverType::AllDecision => {
+                let num_decisions = learned_nogood
+                    .iter()
+                    .filter(|predicate| self.is_decision_predicate(**predicate))
+                    .count();
+                if num_decisions != learned_nogood.len() {
+                    violated = true;
+                    println!(
+                "{}", format!("Expected all elements to be decisions when performing all-decision learning - {:?}", learned_nogood.iter().map(|predicate| (predicate, self.is_decision_predicate(*predicate))).collect::<Vec<_>>()).red()
+            )
+                }
+            }
+            ConflictResolverType::NoLearning => unreachable!(),
         }
 
         !violated
@@ -290,7 +319,9 @@ impl ConflictAnalysisContext<'_> {
             SupportingInference,
         >,
     ) -> usize {
-        if !self.check_nogood_properties(&learned_nogood_predicates) {
+        self.added_nogood = true;
+
+        if !self.check_nogood_properties(&learned_nogood_predicates, self.resolver) {
             panic!(
                 "Could not check properties for the provided nogood; please see the error log for more information"
             )
@@ -302,7 +333,7 @@ impl ConflictAnalysisContext<'_> {
             if let Some(minimiser) = minimiser.as_mut() {
                 minimiser.minimise(self, &mut learned_nogood_predicates);
 
-                if !self.check_nogood_properties(&learned_nogood_predicates) {
+                if !self.check_nogood_properties(&learned_nogood_predicates, self.resolver) {
                     panic!(
                         "Could not check properties for the provided nogood after performing semantic minimisation; please see the error log for more information"
                     )
@@ -557,5 +588,22 @@ impl HasAssignments for ConflictAnalysisContext<'_> {
 
     fn trailed_values_mut(&mut self) -> &mut TrailedValues {
         &mut self.state.trailed_values
+    }
+}
+
+impl Drop for ConflictAnalysisContext<'_> {
+    fn drop(&mut self) {
+        match self.resolver {
+            ConflictResolverType::NoLearning => {}
+            ConflictResolverType::UIP | ConflictResolverType::AllDecision => {
+                if !std::thread::panicking() {
+                    assert!(
+                        self.added_nogood,
+                        "{:?} did not add a nogood; please use `ConflictAnalysisContext::process_learned_nogood(..)` to add a nogood",
+                        self.resolver
+                    )
+                }
+            }
+        }
     }
 }

@@ -167,6 +167,7 @@ pub struct SatisfactionSolverOptions {
     pub learning_options: LearningOptions,
     /// The number of MBs which are preallocated by the nogood propagator.
     pub memory_preallocated: usize,
+    pub resolver: ConflictResolverType,
 }
 
 impl Default for SatisfactionSolverOptions {
@@ -178,6 +179,7 @@ impl Default for SatisfactionSolverOptions {
             proof_log: ProofLog::default(),
             learning_options: LearningOptions::default(),
             memory_preallocated: 1000,
+            resolver: ConflictResolverType::default(),
         }
     }
 }
@@ -220,26 +222,30 @@ impl ConstraintSatisfactionSolver {
                 unreachable!()
             }
         }
+        let conflict = {
+            let mut conflict_analysis_context = ConflictAnalysisContext {
+                solver_state: &mut self.solver_state,
+                brancher: &mut DummyBrancher,
+                proof_log: &mut self.internal_parameters.proof_log,
+                unit_nogood_inference_codes: &mut self.unit_nogood_inference_codes,
+                restart_strategy: &mut self.restart_strategy,
 
-        let mut conflict_analysis_context = ConflictAnalysisContext {
-            solver_state: &mut self.solver_state,
-            brancher: &mut DummyBrancher,
-            proof_log: &mut self.internal_parameters.proof_log,
-            unit_nogood_inference_codes: &mut self.unit_nogood_inference_codes,
-            restart_strategy: &mut self.restart_strategy,
+                state: &mut self.state,
+                nogood_propagator_handle: self.nogood_propagator_handle,
 
-            state: &mut self.state,
-            nogood_propagator_handle: self.nogood_propagator_handle,
+                rng: &mut self.internal_parameters.random_generator,
 
-            rng: &mut self.internal_parameters.random_generator,
+                minimiser: self.minimiser.as_mut(),
+                should_minimise: self.internal_parameters.should_minimise_nogoods,
 
-            minimiser: self.minimiser.as_mut(),
-            should_minimise: self.internal_parameters.should_minimise_nogoods,
+                deduction_checker: self.deduction_checker.as_mut(),
 
-            deduction_checker: self.deduction_checker.as_mut(),
+                resolver: self.internal_parameters.resolver,
+                added_nogood: true,
+            };
+
+            conflict_analysis_context.get_conflict_nogood()
         };
-
-        let conflict = conflict_analysis_context.get_conflict_nogood();
 
         let context = FinalizingContext {
             conflict: conflict.into(),
@@ -507,6 +513,9 @@ impl ConstraintSatisfactionSolver {
                     minimiser: self.minimiser.as_mut(),
                     should_minimise: self.internal_parameters.should_minimise_nogoods,
                     deduction_checker: self.deduction_checker.as_mut(),
+
+                    resolver: self.internal_parameters.resolver,
+                    added_nogood: false,
                 };
                 let mut predicates = context.get_conflict_nogood();
                 let mut core: HashSet<Predicate> = HashSet::default();
@@ -676,7 +685,6 @@ impl ConstraintSatisfactionSolver {
 
             return Ok(());
         }
-
         // Otherwise proceed with standard branching.
         let context = &mut SelectionContext::new(
             &self.state.assignments,
@@ -733,22 +741,25 @@ impl ConstraintSatisfactionSolver {
         resolver: &mut impl ConflictResolver,
     ) {
         pumpkin_assert_moderate!(self.solver_state.is_conflicting());
+        {
+            let mut conflict_analysis_context = ConflictAnalysisContext {
+                solver_state: &mut self.solver_state,
+                brancher,
+                proof_log: &mut self.internal_parameters.proof_log,
+                unit_nogood_inference_codes: &mut self.unit_nogood_inference_codes,
+                restart_strategy: &mut self.restart_strategy,
+                state: &mut self.state,
+                nogood_propagator_handle: self.nogood_propagator_handle,
+                rng: &mut self.internal_parameters.random_generator,
+                minimiser: self.minimiser.as_mut(),
+                should_minimise: self.internal_parameters.should_minimise_nogoods,
+                deduction_checker: self.deduction_checker.as_mut(),
+                resolver: self.internal_parameters.resolver,
+                added_nogood: false,
+            };
 
-        let mut conflict_analysis_context = ConflictAnalysisContext {
-            solver_state: &mut self.solver_state,
-            brancher,
-            proof_log: &mut self.internal_parameters.proof_log,
-            unit_nogood_inference_codes: &mut self.unit_nogood_inference_codes,
-            restart_strategy: &mut self.restart_strategy,
-            state: &mut self.state,
-            nogood_propagator_handle: self.nogood_propagator_handle,
-            rng: &mut self.internal_parameters.random_generator,
-            minimiser: self.minimiser.as_mut(),
-            should_minimise: self.internal_parameters.should_minimise_nogoods,
-            deduction_checker: self.deduction_checker.as_mut(),
-        };
-
-        resolver.resolve_conflict(&mut conflict_analysis_context);
+            resolver.resolve_conflict(&mut conflict_analysis_context);
+        }
 
         self.solver_state.declare_solving();
     }

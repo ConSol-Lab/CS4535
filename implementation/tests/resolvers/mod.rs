@@ -23,6 +23,7 @@ use pumpkin_core::rand::SeedableRng;
 use pumpkin_core::rand::rngs::SmallRng;
 use pumpkin_core::results::SatisfactionResultUnderAssumptions;
 use pumpkin_core::termination::Indefinite;
+use pumpkin_core::variables::DomainId;
 use pumpkin_core::variables::TransformableVariable;
 
 use crate::Constraint;
@@ -32,20 +33,20 @@ mod all_decision_resolver_tests;
 mod deduction_checker_tests;
 mod resolution_resolver_tests;
 
-pub(crate) fn recreate_deduction(
-    deduction: &Deduction<Rc<str>, i32>,
+pub(crate) fn create_solver_with_constraints(
     model: &Model,
     resolver: ConflictResolverType,
-) {
+) -> (Solver, HashMap<Rc<str>, DomainId>) {
     let mut solver = Solver::with_options_and_minimiser(
         SolverOptions {
             should_minimise_nogoods: false,
+            resolver,
             ..Default::default()
         },
         Box::new(SemanticMinimiser::new()),
         Box::new(DeductionCheckerImpl),
     );
-    let mut variables = HashMap::new();
+    let mut variables = HashMap::default();
     for (name, domain) in model.iter_domains() {
         if !variables.contains_key(name) {
             let domain_id = match domain {
@@ -119,7 +120,15 @@ pub(crate) fn recreate_deduction(
             Constraint::Element(_element) => todo!(),
         }
     }
+    (solver, variables)
+}
 
+pub(crate) fn recreate_deduction(
+    deduction: &Deduction<Rc<str>, i32>,
+    resolver: ConflictResolverType,
+    solver: &mut Solver,
+    variables: &HashMap<Rc<str>, DomainId>,
+) {
     let assumptions = deduction
         .premises
         .iter()
@@ -142,6 +151,7 @@ pub(crate) fn recreate_deduction(
             }
         })
         .collect::<Vec<_>>();
+
     let mut brancher = DummyBrancher;
     match resolver {
         ConflictResolverType::NoLearning => todo!(),
@@ -153,10 +163,10 @@ pub(crate) fn recreate_deduction(
                 &mut resolver,
                 &assumptions,
             );
-            assert!(matches!(
-                result,
-                SatisfactionResultUnderAssumptions::UnsatisfiableUnderAssumptions(_)
-            ));
+            assert!(
+                result.is_unsat(),
+                "Expected state to be conflicting after adding all constraints"
+            )
         }
         ConflictResolverType::AllDecision => {
             let mut resolver = AllDecisionResolver::new();
@@ -167,10 +177,10 @@ pub(crate) fn recreate_deduction(
                 &assumptions,
             );
 
-            assert!(matches!(
-                result,
-                SatisfactionResultUnderAssumptions::UnsatisfiableUnderAssumptions(_)
-            ));
+            assert!(
+                result.is_unsat(),
+                "Expected state to be conflicting after adding all constraints"
+            )
         }
     }
 }
@@ -240,6 +250,7 @@ pub(crate) fn invalidate_nogood_deduction(
     }
 }
 
+#[derive(Debug)]
 struct DummyBrancher;
 
 impl Brancher for DummyBrancher {

@@ -27,7 +27,6 @@ pub enum SatisfactionResult<'solver, 'brancher, 'resolver, B: Brancher, R: Confl
 }
 
 /// The result of a call to [`Solver::satisfy_under_assumptions`].
-#[derive(Debug)]
 pub enum SatisfactionResultUnderAssumptions<
     'solver,
     'brancher,
@@ -46,6 +45,35 @@ pub enum SatisfactionResultUnderAssumptions<
     /// Indicates that it is not known whether a solution exists. This is likely due to a
     /// [`TerminationCondition`] triggering.
     Unknown(&'solver Solver),
+}
+
+impl<'solver, 'brancher, 'resolver, B: Brancher, R: ConflictResolver>
+    SatisfactionResultUnderAssumptions<'solver, 'brancher, 'resolver, B, R>
+{
+    pub fn is_unsat(&self) -> bool {
+        matches!(
+            self,
+            SatisfactionResultUnderAssumptions::Unsatisfiable(_)
+                | SatisfactionResultUnderAssumptions::UnsatisfiableUnderAssumptions(_)
+        )
+    }
+}
+
+impl<'solver, 'brancher, 'resolver, B: Brancher, R: ConflictResolver> std::fmt::Debug
+    for SatisfactionResultUnderAssumptions<'solver, 'brancher, 'resolver, B, R>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SatisfactionResultUnderAssumptions::Satisfiable(_) => {
+                write!(f, "Satisfiable")
+            }
+            SatisfactionResultUnderAssumptions::UnsatisfiableUnderAssumptions(_) => {
+                write!(f, "UnsatUnderAssumptions")
+            }
+            SatisfactionResultUnderAssumptions::Unsatisfiable(_) => write!(f, "UNSAT"),
+            SatisfactionResultUnderAssumptions::Unknown(_) => write!(f, "Unknown"),
+        }
+    }
 }
 
 /// The result of a call to [`Solver::optimise`].

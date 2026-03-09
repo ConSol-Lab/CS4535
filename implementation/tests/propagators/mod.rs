@@ -56,6 +56,7 @@ use crate::propagators::model::Linear;
 pub(crate) use crate::propagators::model::Model;
 use crate::propagators::model::Term;
 use crate::propagators::model::parse_model;
+use crate::resolvers::create_solver_with_constraints;
 use crate::resolvers::invalidate_nogood_deduction;
 use crate::resolvers::recreate_deduction;
 
@@ -270,6 +271,12 @@ impl<'a> ProofTestRunner<'a> {
         ));
 
         let mut fact_database = BTreeMap::new();
+
+        let mut solver_and_variables = if self.check_deductions || self.check_learned_nogoods {
+            Some(create_solver_with_constraints(&model, self.resolver))
+        } else {
+            None
+        };
 
         loop {
             let step = reader.next_step().expect("proofs are readable and valid");
@@ -784,7 +791,33 @@ impl<'a> ProofTestRunner<'a> {
                 // Only interested in inferences.
                 drcp_format::Step::Deduction(deduction) => {
                     if self.check_learned_nogoods {
-                        recreate_deduction(&deduction, &model, self.resolver)
+                        let (solver, variables) = solver_and_variables.as_mut().unwrap();
+                        recreate_deduction(&deduction, self.resolver, solver, variables);
+
+                        let constraint_tag = solver.new_constraint_tag();
+                        let clause = deduction
+                            .premises
+                            .iter()
+                            .map(|premise| {
+                                let domain = *variables.get(&premise.name).unwrap();
+
+                                match premise.comparison {
+                                    drcp_format::IntComparison::GreaterEqual => {
+                                        !predicate!(domain >= premise.value)
+                                    }
+                                    drcp_format::IntComparison::LessEqual => {
+                                        !predicate!(domain <= premise.value)
+                                    }
+                                    drcp_format::IntComparison::Equal => {
+                                        !predicate!(domain == premise.value)
+                                    }
+                                    drcp_format::IntComparison::NotEqual => {
+                                        !predicate!(domain != premise.value)
+                                    }
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        let _ = solver.add_clause(clause, constraint_tag);
                     }
 
                     if self.check_deductions {
