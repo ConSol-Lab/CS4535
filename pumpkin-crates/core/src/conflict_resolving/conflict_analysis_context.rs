@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use drcp_format::IntComparison;
+use log::warn;
 use pumpkin_checking::AtomicConstraint;
 
 use crate::Random;
@@ -15,6 +16,7 @@ use crate::conflict_resolving::DeductionChecker;
 use crate::conflict_resolving::LearnedNogood;
 use crate::conflict_resolving::NogoodMinimiser;
 use crate::conflict_resolving::SupportingInference;
+use crate::conflict_resolving::learned_nogood;
 use crate::containers::HashMap;
 use crate::engine::Assignments;
 use crate::engine::ConstraintSatisfactionSolver;
@@ -23,7 +25,6 @@ use crate::engine::Lbd;
 use crate::engine::RestartStrategy;
 use crate::engine::State;
 use crate::engine::TrailedValues;
-use crate::engine::VariableNames;
 use crate::engine::constraint_satisfaction_solver::CSPSolverState;
 use crate::engine::constraint_satisfaction_solver::NogoodLabel;
 use crate::engine::predicates::predicate::Predicate;
@@ -38,6 +39,7 @@ use crate::proof::explain_root_assignment;
 use crate::propagation::CurrentNogood;
 use crate::propagation::ExplanationContext;
 use crate::propagation::HasAssignments;
+use crate::propagation::ReadDomains;
 use crate::propagators::nogoods::NogoodChecker;
 use crate::propagators::nogoods::NogoodPropagator;
 use crate::pumpkin_assert_eq_simple;
@@ -64,6 +66,7 @@ pub struct ConflictAnalysisContext<'a> {
 
     pub(crate) minimiser: Option<&'a mut Box<dyn NogoodMinimiser>>,
     pub(crate) should_minimise: bool,
+    #[allow(unused, reason = "Used but behind a feature gate")]
     pub(crate) deduction_checker: Option<&'a mut Box<dyn DeductionChecker>>,
 }
 
@@ -243,35 +246,72 @@ impl ConflictAnalysisContext<'_> {
         }
     }
 
+    fn check_nogood_properties(&self, learned_nogood: &[Predicate]) -> bool {
+        let mut violated = false;
+
+        if learned_nogood.is_empty() {
+            violated = true;
+            warn!("The provided nogood should not be empty");
+        }
+
+        if learned_nogood
+            .iter()
+            .any(|predicate| self.evaluate_predicate(*predicate) != Some(true))
+        {
+            violated = true;
+            warn!(
+                "The element {:?} in the provided nogood {:?} does not hold",
+                learned_nogood
+                    .iter()
+                    .find(|predicate| self.evaluate_predicate(**predicate) != Some(true)),
+                learned_nogood
+            );
+        }
+
+        let num_curr_checkpoint = learned_nogood
+            .iter()
+            .filter(|predicate| {
+                self.get_checkpoint_for_predicate(**predicate).is_some()
+                    && self.get_checkpoint_for_predicate(**predicate).unwrap()
+                        == self.get_checkpoint()
+            })
+            .count();
+        if num_curr_checkpoint != 1 {
+            violated = true;
+            warn!(
+                "Expected only 1 element from the current decision level in the nogood {learned_nogood:?}, but there were {num_curr_checkpoint}"
+            )
+        }
+
+        !violated
+    }
+
     /// Backtracks the solver and adds the learned nogood to the database, returning the level to
     /// which the solver backtracked.
     pub fn process_learned_nogood(
         &mut self,
         mut learned_nogood_predicates: Vec<Predicate>,
-        supporting_inferences: Vec<SupportingInference>,
+        #[allow(unused, reason = "Used but behind a feature gate")] supporting_inferences: Vec<
+            SupportingInference,
+        >,
     ) -> usize {
-        assert!(
-            !learned_nogood_predicates.is_empty(),
-            "The provided nogood should not be empty"
-        );
-        assert_eq!(
-            learned_nogood_predicates
-                .iter()
-                .filter(|predicate| self
-                    .state
-                    .get_checkpoint_for_predicate(**predicate)
-                    .expect("Every predicate in the provided nogood should be currently true")
-                    == self.state.get_checkpoint())
-                .count(),
-            1,
-            "Only one predicate in the provided nogood should be of the current decision level"
-        );
+        if !self.check_nogood_properties(&learned_nogood_predicates) {
+            panic!(
+                "Could not check properties for the provided nogood; please see the error log for more information"
+            )
+        }
 
         if self.should_minimise {
             let mut minimiser = std::mem::take(&mut self.minimiser);
 
             if let Some(minimiser) = minimiser.as_mut() {
                 minimiser.minimise(self, &mut learned_nogood_predicates);
+
+                if !self.check_nogood_properties(&learned_nogood_predicates) {
+                    panic!(
+                        "Could not check properties for the provided nogood after performing semantic minimisation; please see the error log for more information"
+                    )
+                }
             }
 
             self.minimiser = minimiser
