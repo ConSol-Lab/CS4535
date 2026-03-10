@@ -820,7 +820,7 @@ impl<'a> ProofTestRunner<'a> {
                         let _ = solver.add_clause(clause, constraint_tag);
                     }
 
-                    if self.check_deductions {
+                    if self.check_deductions && !deduction.premises.is_empty() {
                         let premises = deduction
                             .premises
                             .iter()
