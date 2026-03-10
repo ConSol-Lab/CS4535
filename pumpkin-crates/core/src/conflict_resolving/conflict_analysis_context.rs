@@ -310,6 +310,14 @@ impl ConflictAnalysisContext<'_> {
         !violated
     }
 
+    /// Returns whether the provided [`Predicate`] is implied by another predicate.
+    ///
+    /// For example, if we post the [`Predicate`] [x >= v] when it was previously true that [x >= v
+    /// - 2], then the predicate [x >= v - 1] is not explicity on the trail.
+    pub fn is_implied(&self, predicate: Predicate) -> bool {
+        !self.state.is_on_trail(predicate)
+    }
+
     /// Backtracks the solver and adds the learned nogood to the database, returning the level to
     /// which the solver backtracked.
     pub fn process_learned_nogood(
