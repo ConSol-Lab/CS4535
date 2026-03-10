@@ -21,7 +21,6 @@ use pumpkin_core::predicates::Predicate;
 #[allow(clippy::disallowed_types, reason = "Used for the assignment")]
 use pumpkin_core::rand::SeedableRng;
 use pumpkin_core::rand::rngs::SmallRng;
-use pumpkin_core::results::SatisfactionResultUnderAssumptions;
 use pumpkin_core::termination::Indefinite;
 use pumpkin_core::variables::DomainId;
 use pumpkin_core::variables::TransformableVariable;
@@ -31,7 +30,7 @@ use crate::Model;
 
 mod all_decision_resolver_tests;
 mod deduction_checker_tests;
-mod resolution_resolver_tests;
+mod one_uip_resolver_tests;
 
 pub(crate) fn create_solver_with_constraints(
     model: &Model,

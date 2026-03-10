@@ -5,7 +5,7 @@ from common import IMPLEMENTATION_GRADE_CONTRIBUTION, build_test_cases, passed_a
 TEST_CASES_WITH_PERCENTAGE = {
     "minimisers::semantic_minimiser_tests": 0.15,
     "resolvers::deduction_checker_tests": 0.10,
-    "resolvers::resolution_resolver_tests": 0.15,
+    "resolvers::one_uip_resolver_tests": 0.15,
     "resolvers::all_decision_resolver_tests": 0.10,
 }
 assert sum(TEST_CASES_WITH_PERCENTAGE.values()) * 10 == IMPLEMENTATION_GRADE_CONTRIBUTION
