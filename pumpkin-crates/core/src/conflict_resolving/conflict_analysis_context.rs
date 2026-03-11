@@ -310,12 +310,15 @@ impl ConflictAnalysisContext<'_> {
         !violated
     }
 
-    /// Returns whether the provided [`Predicate`] is implied by another predicate.
+    /// Returns whether the provided [`Predicate`] is explicitly on the trail.
     ///
-    /// For example, if we post the [`Predicate`] [x >= v] when it was previously true that [x >= v
-    /// - 2], then the predicate [x >= v - 1] is not explicity on the trail.
-    pub fn is_implied(&self, predicate: Predicate) -> bool {
-        !self.state.is_on_trail(predicate)
+    /// For example, if we have a variable x in \[0, 10], and the solver posts the predicate
+    /// \[x >= 5] at *trail position* `k`, then *implicitly* the predicate
+    /// \[x >= 3] becomes true at trail position `k` even though it is not
+    /// *explicitly* on the trail. In this case, the function would return true for \[x >= 5] and
+    /// false for \[x >= 3].
+    pub fn is_explicitly_on_trail(&self, predicate: Predicate) -> bool {
+        self.state.is_on_trail(predicate)
     }
 
     /// Backtracks the solver and adds the learned nogood to the database, returning the level to
