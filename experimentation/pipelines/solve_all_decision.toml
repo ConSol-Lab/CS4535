@@ -2,5 +2,5 @@ binaries = ["pumpkin-solver"]
 
 [[step]]
 name = "solve"
-command = "@bin:pumpkin-solver -sa @bench:1 --conflict-resolver=uip"
+command = "@bin:pumpkin-solver -sa @bench:1 --conflict-resolver=all-decision"
 timeout = 150 # 2.5 minutes
