@@ -131,7 +131,7 @@ pub struct EmptyDomainConflict {
     /// The reason for [`EmptyDomainConflict::trigger_predicate`] to be true.
     pub(crate) trigger_reason: ReasonRef,
     /// The [`InferenceCode`] that accompanies [`EmptyDomainConflict::trigger_reason`].
-    pub(crate) trigger_inference_code: InferenceCode,
+    pub trigger_inference_code: InferenceCode,
 }
 
 impl EmptyDomainConflict {
@@ -218,6 +218,22 @@ impl State {
     /// Create a new [`ConstraintTag`].
     pub fn new_constraint_tag(&mut self) -> ConstraintTag {
         self.constraint_tags.next_key()
+    }
+
+    /// Returns whether the provided [`Predicate`] is implied by the intial domain.
+    pub fn is_implied_by_initial_domain(&self, predicate: Predicate) -> bool {
+        self.assignments.is_initial_bound(predicate)
+    }
+
+    /// Returns the inference code for the provided `trail_index`.
+    pub fn inference_code_for_trail_index(&self, trail_index: usize) -> InferenceCode {
+        let (_, inference_code) = self
+            .assignments
+            .get_trail_entry(trail_index)
+            .reason
+            .expect("for now we expect this to be a propagation");
+
+        inference_code
     }
 
     /// Creates a new Boolean (0-1) variable.

@@ -46,6 +46,10 @@ impl<Key: StorageKey, Value> KeyedVec<Key, Value> {
         self.elements.get(key.index())
     }
 
+    pub fn get_mut(&mut self, key: Key) -> Option<&mut Value> {
+        self.elements.get_mut(key.index())
+    }
+
     pub fn len(&self) -> usize {
         self.elements.len()
     }

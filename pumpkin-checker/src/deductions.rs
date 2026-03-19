@@ -3,6 +3,10 @@ use std::rc::Rc;
 
 use drcp_format::ConstraintId;
 use drcp_format::IntAtomic;
+use implementation::conflict_analysis::DeductionCheckerImpl;
+use pumpkin_core::conflict_resolving::Atomic;
+use pumpkin_core::conflict_resolving::DeductionChecker;
+use pumpkin_core::conflict_resolving::SupportingInference;
 
 use crate::inferences::Fact;
 use crate::model::Nogood;
@@ -41,10 +45,58 @@ pub enum InvalidDeduction {
 
 /// Verify that a deduction is valid given the inferences in the proof stage.
 pub fn verify_deduction(
-    _deduction: &drcp_format::Deduction<Rc<str>, i32>,
-    _facts_in_proof_stage: &BTreeMap<ConstraintId, Fact>,
+    deduction: &drcp_format::Deduction<Rc<str>, i32>,
+    facts_in_proof_stage: &BTreeMap<ConstraintId, Fact>,
 ) -> Result<Nogood, InvalidDeduction> {
-    todo!()
+    let checker = DeductionCheckerImpl;
+    let verified = checker.verify_deduction(
+        deduction
+            .premises
+            .iter()
+            .cloned()
+            .map(Atomic::IntAtomic)
+            .collect(),
+        deduction
+            .sequence
+            .iter()
+            .map(|constraint_id| {
+                let fact = facts_in_proof_stage.get(constraint_id).unwrap_or_else(|| {
+                    panic!("Expected fact with id {constraint_id:?} to exist in database")
+                });
+
+                SupportingInference {
+                    premises: fact
+                        .premises
+                        .iter()
+                        .cloned()
+                        .map(|proof_atomic| match proof_atomic {
+                            crate::model::Atomic::True => Atomic::True,
+                            crate::model::Atomic::False => Atomic::False,
+                            crate::model::Atomic::IntAtomic(int_atomic) => {
+                                Atomic::IntAtomic(int_atomic)
+                            }
+                        })
+                        .collect(),
+                    consequent: fact
+                        .consequent
+                        .clone()
+                        .map(|proof_atomic| match proof_atomic {
+                            crate::model::Atomic::True => Atomic::True,
+                            crate::model::Atomic::False => Atomic::False,
+                            crate::model::Atomic::IntAtomic(int_atomic) => {
+                                Atomic::IntAtomic(int_atomic)
+                            }
+                        }),
+                }
+            })
+            .collect(),
+    );
+
+    if verified {
+        Ok(Nogood::from(deduction.premises.clone()))
+    } else {
+        Err(InvalidDeduction::NoConflict(vec![]))
+    }
 }
 
 #[cfg(test)]

@@ -21,7 +21,9 @@ fnv = "1.0.7"
 derive_more = { version = "2.1.1", features = ["from"] }
 
 [dev-dependencies]
+escargot = "0.5.15"
 assert_cmd = "2.1.2"
+paste = "1.0.15"
 
 [lints]
 workspace = true
