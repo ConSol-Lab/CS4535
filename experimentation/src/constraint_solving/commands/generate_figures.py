@@ -195,4 +195,53 @@ def run(experiment_name: str, other_experiment_name: str, proof: bool) -> int:
 
         plt.clf()
 
+        print()
+        print("TABLE:\n")
+
+        headers = ["Instance", "\\#Deductions Scaffold", "\\#Deductions Processed", "\\#Inferences"]
+
+        textabular = f"|c{'|c|'*len(headers)}"
+        texheader = "\\hline\n" + " & ".join(headers) + "\\\\"
+        texdata = "\\hline\n\\hline\n"
+
+        texdata += "\\multicolumn{4}{|c|}{\\textbf{Feasibility Instances}}\\\\"
+        for row in (
+            feasibility_df.select(
+                ["benchmark-key", "Scaffold #Deductions", "Processed #Deductions", "Processed #Inferences"]
+            )
+            .sort("benchmark-key")
+            .iter_rows(named=True)
+        ):
+            texdata += "\\hline\n"
+            texdata += (
+                " & ".join(
+                    str(value).replace("_", "\\_") if isinstance(value, str) else f"{value:,d}"
+                    for value in row.values()
+                )
+                + "\\\\\n"
+            )
+
+        texdata += "\\hline\n"
+        texdata += "\\multicolumn{4}{|c|}{\\textbf{Optimisation Instances}}\\\\"
+        for row in (
+            optimisation_df.select(
+                ["benchmark-key", "Scaffold #Deductions", "Processed #Deductions", "Processed #Inferences"]
+            )
+            .sort("benchmark-key")
+            .iter_rows(named=True)
+        ):
+            texdata += "\\hline\n"
+            texdata += (
+                " & ".join(
+                    str(value).replace("_", "\\_") if isinstance(value, str) else f"{value:,d}"
+                    for value in row.values()
+                )
+                + "\\\\\n"
+            )
+        texdata += "\\hline\n"
+
+        print("\\begin{tabular}{" + textabular + "}")
+        print(texheader)
+        print(texdata, end="")
+        print("\\end{tabular}")
     return 0
