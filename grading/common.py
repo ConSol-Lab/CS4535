@@ -114,3 +114,97 @@ def passed_all_test_cases(
     print()
 
     return passed_all
+
+
+def percentage_passed(
+    test_name: str,
+    log_failed: bool = False,
+    timeout: int = 60,
+    crate: str = "implementation",
+    log=False,
+) -> float:
+    """Runs the test cases with `test_name` as name and returns whether *all* test cases passed.
+
+    :param test_name: The name of the test cases to run.
+    :param log_failed: Whether to log the failed test cases.
+    :param timeout: The timeout in seconds for the command (60 seconds by default).
+    :param crate: The crate which contains the test cases ('implementation' by default).
+    :return: True if all test cases passed and false otherwise.
+    """
+    if log:
+        print(f"Running test cases {test_name}...")
+    try:
+        result = subprocess.run(
+            [
+                "cargo",
+                "+nightly",
+                "test",
+                "-p",
+                crate,
+                "--features",
+                "pumpkin-core/check-propagations",
+                test_name,
+                "--",
+                "-Z",
+                "unstable-options",
+                "--format",
+                "json",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            text=True,
+        )
+    except subprocess.TimeoutExpired:
+        if log:
+            print(f"\t{FAIL}TIMEOUT: {test_name} took longer than {timeout} seconds{ENDC}")
+            print()
+        return False
+
+    num_matched = 0
+    passed_all = False
+    total_passed = None
+    total_failed = None
+
+    for line in result.stdout.splitlines():
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        if "type" in msg and msg["type"] == "suite" and "passed" in msg and "failed" in msg:
+            # A test suite has been run, we should retrieve the information
+
+            passed = msg["passed"]
+            failed = msg["failed"]
+
+            if passed + failed != 0:
+                num_matched += 1
+
+            passed_all = failed == 0
+
+            total_passed = passed
+            total_failed = failed
+        elif log_failed and "type" in msg and msg["type"] == "test" and "event" in msg and msg["event"] == "failed":
+            # A failing test case; since `log_failed` is enabled, we should log it
+            assert "name" in msg
+            if log:
+                print(f"\t{FAIL}Failed:{ENDC} {msg['name']}")
+
+    if num_matched == 0:
+        raise Exception(f"No test cases ran for {test_name}")
+    elif num_matched > 1:
+        raise Exception(
+            f"More than 1 test cases ran for {test_name}; this indicates that there are overlapping test cases"
+        )
+
+    if passed_all:
+        if log:
+            print(f"\t{OKGREEN}Passed {total_passed} / {total_passed + total_failed} test cases for {test_name}{ENDC}")
+    else:
+        if log:
+            print(f"\t{FAIL}Passed {total_passed} / {total_passed + total_failed} test cases for {test_name}{ENDC}")
+    if log:
+        print()
+
+    return total_passed / (total_passed + total_failed)
