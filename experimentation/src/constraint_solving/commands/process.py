@@ -1,5 +1,7 @@
 import csv
+import glob
 import logging
+import os
 import shutil
 import tomllib
 from pathlib import Path
@@ -20,7 +22,6 @@ REQUIRED_STATS = [
     "command",
     "benchmark-key",
     "command-status",
-    "status",
 ]
 
 
@@ -82,9 +83,56 @@ def parse_solver_log(directory: Path, step_name: str) -> dict | None:
     }
 
 
+def parse_proof(directory: Path, step_name: str) -> dict | None:
+    driver_path = directory / f"driver.process.log"
+    proof_path = directory / "output.full.drcp"
+
+    if not driver_path.is_file():
+        driver_stats = {}
+    else:
+        with driver_path.open("rb") as fp:
+            driver_stats = tomllib.load(fp)
+
+    statistics = {}
+
+    if "command" in driver_stats:
+        scaffold_file = "benchmarks/models/market-split" / Path(f"{directory.name}.scaffold.drcp")
+        if scaffold_file.exists():
+            statistics["Scaffold #Deductions"] = 0
+            with scaffold_file.open(mode="r") as scaffold_file:
+                for line in scaffold_file.readlines():
+                    if line.startswith("n "):
+                        statistics["Scaffold #Deductions"] += 1
+        else:
+            logging.info(f"Could not find {str(scaffold_file.resolve().absolute())}")
+
+    if not proof_path.is_file():
+        logging.info(f"Could not find proof in {str(directory)}")
+
+        return {
+            **driver_stats,
+            **statistics,
+        }
+
+    with proof_path.open(mode="r") as processed_proof:
+        statistics["Processed #Deductions"] = 0
+        statistics["Processed #Inferences"] = 0
+        for line in processed_proof.readlines():
+            if line.startswith("n "):
+                statistics["Processed #Deductions"] += 1
+            elif line.startswith("i "):
+                statistics["Processed #Inferences"] += 1
+
+    return {
+        **driver_stats,
+        **statistics,
+    }
+
+
 @click.command()
 @click.argument("experiment_name", type=str)
-def run(experiment_name: str) -> int:
+@click.option("--proof", is_flag=True)
+def run(experiment_name: str, proof: bool) -> int:
     config = common_init()
 
     try:
@@ -109,10 +157,16 @@ def run(experiment_name: str) -> int:
         experiment.path.glob("*/"),
         description="Parsing runs...",
     ):
-        log_stats = parse_solver_log(benchmark_run_dir, "solve")
-        assert log_stats is not None
+        if proof:
+            log_stats = parse_proof(benchmark_run_dir, "solve")
+            assert log_stats is not None
 
-        stats = {"benchmark-key": benchmark_run_dir.name, **log_stats}
+            stats = {"benchmark-key": benchmark_run_dir.name, **log_stats}
+        else:
+            log_stats = parse_solver_log(benchmark_run_dir, "solve")
+            assert log_stats is not None
+
+            stats = {"benchmark-key": benchmark_run_dir.name, **log_stats}
 
         stats_file_path = benchmark_run_dir / "stats.toml"
         with stats_file_path.open("wb") as fp:

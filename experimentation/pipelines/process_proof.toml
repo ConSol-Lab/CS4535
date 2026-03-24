@@ -1,0 +1,6 @@
+binaries = ["pumpkin-proof-processor"]
+
+[[step]]
+name = "process"
+command = "@bin:pumpkin-proof-processor @bench:1 @bench:2 output.full.drcp"
+timeout = 150 # 2.5 minutes

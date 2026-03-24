@@ -1,0 +1,7 @@
+git-url = "../"
+
+compile = "cargo build --release -p pumpkin-proof-processor"
+
+[[binary]]
+name = "pumpkin-proof-processor"
+path = "target/release/pumpkin-proof-processor"
