@@ -130,11 +130,10 @@ uv run process <EXPERIMENT_NAME>
 This will create a folder in `results/<EXPERIMENT_NAME>` containing parsed results.
 
 ## Assignment 4
-For assignment 4, you need to create an additional flag to generate the CSV; please use the following command:
+For assignment 4, you need to pass an additional flag to generate the CSV; please use the following command:
 ```bash
 uv run process <EXPERIMENT_NAME> --proof
 ```
-This will create a folder in `results/<EXPERIMENT_NAME>` containing parsed results.
 
 # Create figures
 You can create the figures to include in the report by running the following command:
@@ -145,3 +144,9 @@ This will create a scatter plot between the optimally solved instances for both 
 1) number of failures
 2) solve time 
 These plots are created in the folder `figures/<EXPERIMENT_NAME>__<OTHER_EXPERIMENT_NAME>/` .
+
+## Assignment 4
+For assignment 4, you need to pass an additional flag to generate the figure(s); please use the following command:
+```bash
+uv run generate_figures <EXPERIMENT_NAME> <OTHER_EXPERIMENT_NAME> --proof
+```

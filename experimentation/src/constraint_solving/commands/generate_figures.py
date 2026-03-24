@@ -96,7 +96,8 @@ def generate_image(
 @click.command()
 @click.argument("experiment_name", type=str)
 @click.argument("other_experiment_name", type=str)
-def run(experiment_name: str, other_experiment_name: str) -> int:
+@click.option("--proof", is_flag=True)
+def run(experiment_name: str, other_experiment_name: str, proof: bool) -> int:
     config = common_init()
 
     # Load first experiment
@@ -120,20 +121,75 @@ def run(experiment_name: str, other_experiment_name: str) -> int:
     pl.Config.set_tbl_hide_dataframe_shape(True)
 
     experiment_df = pl.read_csv(experiment_csv)
-    status_overview = experiment_df.group_by("status").count()
-    print(f"Instance statuses {experiment_name}:\n{status_overview}\n")
+    if not proof:
+        status_overview = experiment_df.group_by("status").count()
+        print(f"Instance statuses {experiment_name}:\n{status_overview}\n")
 
     other_experiment_df = pl.read_csv(other_experiment_csv)
-    other_status_overview = other_experiment_df.group_by("status").count()
-    print(f"Instance statuses {other_experiment_name}:\n{other_status_overview}")
+    if not proof:
+        other_status_overview = other_experiment_df.group_by("status").count()
+        print(f"Instance statuses {other_experiment_name}:\n{other_status_overview}")
 
-    combined = experiment_df.join(other_experiment_df, on="benchmark-key").filter(
-        pl.col("status") == "OPTIMAL", pl.col("status_right") == "OPTIMAL"
-    )
+    if not proof:
+        combined = experiment_df.join(other_experiment_df, on="benchmark-key").filter(
+            pl.col("status") == "OPTIMAL", pl.col("status_right") == "OPTIMAL"
+        )
 
-    generate_image(config, experiment_name, other_experiment_name, combined, "failures")
-    generate_image(
-        config, experiment_name, other_experiment_name, combined, "solveTime", max_x_lim=150, max_y_lim=150, log=False
-    )
+        generate_image(config, experiment_name, other_experiment_name, combined, "failures")
+        generate_image(
+            config,
+            experiment_name,
+            other_experiment_name,
+            combined,
+            "solveTime",
+            max_x_lim=150,
+            max_y_lim=150,
+            log=False,
+        )
+    else:
+        (optimisation_df, feasibility_df) = (
+            (experiment_df, other_experiment_df)
+            if experiment_df.select(pl.col("benchmark-key").str.contains("rcpsp").all()).item()
+            else (other_experiment_df, experiment_df)
+        )
+        image_dir = config.figures_dir / f"{experiment_name}__{other_experiment_name}"
+        image_dir.mkdir(parents=True, exist_ok=True)
+
+        plt.scatter(
+            optimisation_df["Scaffold #Deductions"], optimisation_df["Processed #Deductions"], label="Optimisation"
+        )
+        plt.scatter(
+            feasibility_df["Scaffold #Deductions"], feasibility_df["Processed #Deductions"], label="Feasibility"
+        )
+
+        max_x_lim = max(optimisation_df["Scaffold #Deductions"].max(), feasibility_df["Scaffold #Deductions"].max())
+        max_y_lim = max(optimisation_df["Processed #Deductions"].max(), feasibility_df["Processed #Deductions"].max())
+
+        max_lim = 1.05 * max(max_y_lim, max_x_lim)
+        plt.xlim(1e-1, max_lim)
+        plt.ylim(1e-1, max_lim)
+
+        plt.plot([1e-1, max_lim], [1e-1, max_lim], linestyle="--", color="red")
+
+        plt.xscale("log")
+        plt.yscale("log")
+
+        locator = LogLocator(base=10)
+
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(locator)
+        ax.yaxis.set_major_locator(locator)
+
+        plt.gca().set_aspect("equal", adjustable="box")
+
+        plt.xlabel("#Deductions Scaffold")
+        plt.ylabel("#Deductions Processed")
+        plt.title("#Deductions comparison")
+
+        plt.legend(loc="upper left")
+
+        plt.savefig(image_dir / "num_deductions.png")
+
+        plt.clf()
 
     return 0
