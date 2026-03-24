@@ -340,8 +340,7 @@ impl ProofProcessor {
         // - `PredicateHeap::push`
         // - `State::is_implied_by_initial_domain`
         // - `State::new_constraint_tag`
-        // - `State::get_propagation_reason` with `CurrentNogood::empty()`
-        // - `State::inference_code_for_trail_index`
+        // - `Self::get_propagation_reason`
         // - `convert_predicates_to_proof_atomic` and `convert_predicate_to_proof_atomic`
         // - `mark_entry`
         //
@@ -349,12 +348,6 @@ impl ProofProcessor {
         // ```
         // Arc::from("initial_domain")
         // ```
-
-        // Maps a predicate that is implied by the initial domain to an index in `inferences` that
-        // is the inference for that predicate.
-        //
-        // Used to remove duplicate inferences for initial domain predicates.
-        let mut initial_bound_indices: HashMap<Predicate, usize> = HashMap::new();
 
         // For every predicate in the queue, we will introduce appropriate inferences into
         // the proof.
@@ -366,6 +359,26 @@ impl ProofProcessor {
         // leafs rather than from the assumptions to the conflict. Also, filter out the
         // tombstone values.
         inferences.into_iter().rev().flatten().collect()
+    }
+
+    /// Returns the reason for the provided `Predicate` and, if available, its inference code.
+    ///
+    /// Note that the inference code will be [`None`] for explicitly-trailed predicates.
+    #[allow(unused, reason = "TODO statements will be removed in the assignment")]
+    fn get_propagation_reason(
+        &mut self,
+        predicate: Predicate,
+    ) -> (Vec<Predicate>, Option<InferenceCode>) {
+        let mut reason = vec![];
+        let trail_position =
+            self.state
+                .get_propagation_reason(predicate, &mut reason, CurrentNogood::empty());
+
+        (
+            reason.into(),
+            trail_position
+                .map(|trail_position| self.state.inference_code_for_trail_index(trail_position)),
+        )
     }
 
     /// Initialise the state with the deductions from the proof, returning either an error or the
