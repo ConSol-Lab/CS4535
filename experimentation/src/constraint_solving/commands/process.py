@@ -22,6 +22,7 @@ REQUIRED_STATS = [
     "command",
     "benchmark-key",
     "command-status",
+    "status",
 ]
 
 
@@ -179,7 +180,7 @@ def run(experiment_name: str, proof: bool) -> int:
     for row in aggregated_stats:
         features.update(row.keys())
     for stat in REQUIRED_STATS:
-        if stat in features:
+        if stat in features or (stat == "status" and proof):
             features.remove(stat)
     fields = REQUIRED_STATS + sorted(features)
 
