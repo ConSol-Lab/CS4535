@@ -96,6 +96,13 @@ Please run the following commands:
 uv run init_experiment solve_1uip_minimise linear 
 ```
 
+# Assignment 4
+## Proof Processing 
+Please run the following commands:
+```bash
+uv run init_experiment process_proof process 
+```
+
 ---
 
 # Run experiments
@@ -113,6 +120,13 @@ uv run execute_experiment --num-threads=<NUM_THREADS> <EXPERIMENT_NAME>
 You can generate statistics for the experiments using the following command:
 ```bash
 uv run process <EXPERIMENT_NAME>
+```
+This will create a folder in `results/<EXPERIMENT_NAME>` containing parsed results.
+
+## Assignment 4
+For assignment 4, you need to create an additional flag to generate the CSV; please use the following command:
+```bash
+uv run process <EXPERIMENT_NAME> --proof
 ```
 This will create a folder in `results/<EXPERIMENT_NAME>` containing parsed results.
 
