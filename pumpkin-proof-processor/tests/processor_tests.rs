@@ -10,6 +10,7 @@ use drcp_format::reader::ProofReader;
 
 macro_rules! accept_proof {
     ($name:ident, no_trimming) => {
+        #[allow(non_snake_case)]
         #[test]
         fn $name() {
             run_processor_on_proof(stringify!($name), false);
@@ -17,6 +18,7 @@ macro_rules! accept_proof {
     };
 
     ($name:ident) => {
+        #[allow(non_snake_case)]
         #[test]
         fn $name() {
             run_processor_on_proof(stringify!($name), true);
@@ -36,6 +38,15 @@ accept_proof!(market_split_u3_07, no_trimming);
 accept_proof!(market_split_u3_08);
 accept_proof!(market_split_u3_09, no_trimming);
 accept_proof!(market_split_u3_10, no_trimming);
+
+accept_proof!(rcpsp_smaller_pack033);
+accept_proof!(rcpsp_smaller_pack032);
+accept_proof!(rcpsp_smaller_pack026);
+accept_proof!(rcpsp_smaller_pack008);
+accept_proof!(rcpsp_smaller_j304_1);
+accept_proof!(rcpsp_smaller_j304_3);
+accept_proof!(rcpsp_smaller_Bl2519);
+accept_proof!(rcpsp_smaller_small_st103_14);
 
 fn run_processor_on_proof(model: &str, assert_trimming: bool) {
     let model_path = format!("{}/tests/scaffolds/{model}.fzn", env!("CARGO_MANIFEST_DIR"));

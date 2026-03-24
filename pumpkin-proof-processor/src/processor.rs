@@ -145,7 +145,6 @@ impl ProofProcessor {
         // constraint and process from there.
         let (conclusion, mut deduction_stack) = self.initialise(proof_reader)?;
 
-        info!("Processing a proof with {} stages", deduction_stack.len());
         let mut num_inferences = 0;
 
         // Next, we will start the backward trimming procedure.
@@ -381,6 +380,8 @@ impl ProofProcessor {
 
         let mut deduction_stack = KeyedVec::default();
 
+        let mut num_deductions = 0;
+
         if let Err(conflict) = self.state.propagate_to_fixed_point() {
             // If the state is in a conflict after propagating only the model
             // constraints, the proof consists of only one proof stage.
@@ -389,6 +390,10 @@ impl ProofProcessor {
             deduction_stack.accomodate(empty_nogood_tag, None);
 
             let inferences = self.justify_conflict(&mut deduction_stack, conflict);
+
+            num_deductions += 1;
+
+            info!("Processing proof scaffold with {num_deductions} deductions");
 
             // Log the empty clause to the proof.
             self.output_proof.push(ProofStage {
@@ -411,11 +416,15 @@ impl ProofProcessor {
 
             // Extract the deduction from the step, or otherwise handle the step type.
             let deduction = match step {
-                Step::Deduction(deduction) => deduction,
+                Step::Deduction(deduction) => {
+                    num_deductions += 1;
+                    deduction
+                }
 
                 // A dual bound conclusion is encountered. This is of the form `true -> bound`.
                 // This means we have to find a nogood `!bound -> false` and mark it.
                 Step::Conclusion(Conclusion::DualBound(bound)) => {
+                    info!("Processing proof scaffold with {num_deductions} deductions");
                     return self.prepare_trimming_for_dual_bound_conclusion(bound, deduction_stack);
                 }
 
@@ -470,6 +479,7 @@ impl ProofProcessor {
 
                 // If we reach inconsistency through propagation alone, then it must mean that the
                 // proof is a proof of unsatisfiability and not a dual bound proof.
+                info!("Processing proof scaffold with {num_deductions} deductions");
                 return self.repair_solver(conflict, constraint_tag, deduction_stack);
             }
         }
