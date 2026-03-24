@@ -159,7 +159,10 @@ def run(experiment_name: str, other_experiment_name: str, proof: bool) -> int:
             optimisation_df["Scaffold #Deductions"], optimisation_df["Processed #Deductions"], label="Optimisation"
         )
         plt.scatter(
-            feasibility_df["Scaffold #Deductions"], feasibility_df["Processed #Deductions"], label="Feasibility"
+            feasibility_df["Scaffold #Deductions"],
+            feasibility_df["Processed #Deductions"],
+            label="Feasibility",
+            marker="s",
         )
 
         max_x_lim = max(optimisation_df["Scaffold #Deductions"].max(), feasibility_df["Scaffold #Deductions"].max())
