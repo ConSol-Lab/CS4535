@@ -97,10 +97,16 @@ uv run init_experiment solve_1uip_minimise linear
 ```
 
 # Assignment 4
-## Proof Processing 
+## Feasibility Problem 
 Please run the following commands:
 ```bash
-uv run init_experiment process_proof process 
+uv run init_experiment process_proof process_feasibility
+```
+
+## Optimisation Problem 
+Please run the following commands:
+```bash
+uv run init_experiment process_proof process_optimisation
 ```
 
 ---

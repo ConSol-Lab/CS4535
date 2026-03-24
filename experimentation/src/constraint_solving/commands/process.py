@@ -98,6 +98,8 @@ def parse_proof(directory: Path, step_name: str) -> dict | None:
 
     if "command" in driver_stats:
         scaffold_file = "benchmarks/models/market-split" / Path(f"{directory.name}.scaffold.drcp")
+        if not scaffold_file.exists():
+            scaffold_file = "benchmarks/models/linear" / Path(f"{directory.name}.scaffold.drcp")
         if scaffold_file.exists():
             statistics["Scaffold #Deductions"] = 0
             with scaffold_file.open(mode="r") as scaffold_file:
@@ -180,7 +182,7 @@ def run(experiment_name: str, proof: bool) -> int:
     for row in aggregated_stats:
         features.update(row.keys())
     for stat in REQUIRED_STATS:
-        if stat in features or (stat == "status" and proof):
+        if stat in features:
             features.remove(stat)
     fields = REQUIRED_STATS + sorted(features)
 

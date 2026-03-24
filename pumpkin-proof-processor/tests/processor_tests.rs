@@ -46,7 +46,7 @@ accept_proof!(rcpsp_smaller_pack008);
 accept_proof!(rcpsp_smaller_j304_1);
 accept_proof!(rcpsp_smaller_j304_3);
 accept_proof!(rcpsp_smaller_Bl2519);
-accept_proof!(rcpsp_smaller_small_st103_14);
+accept_proof!(rcpsp_smaller_st103_14);
 
 fn run_processor_on_proof(model: &str, assert_trimming: bool) {
     let model_path = format!("{}/tests/scaffolds/{model}.fzn", env!("CARGO_MANIFEST_DIR"));
