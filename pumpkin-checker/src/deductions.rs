@@ -49,6 +49,39 @@ pub fn verify_deduction(
     facts_in_proof_stage: &BTreeMap<ConstraintId, Fact>,
 ) -> Result<Nogood, InvalidDeduction> {
     let checker = DeductionCheckerImpl;
+    let mut inferences = vec![];
+    for constraint_id in deduction.sequence.iter() {
+        let fact = facts_in_proof_stage.get(constraint_id);
+
+        if let Some(fact) = fact {
+            inferences.push(SupportingInference {
+                premises: fact
+                    .premises
+                    .iter()
+                    .cloned()
+                    .map(|proof_atomic| match proof_atomic {
+                        crate::model::Atomic::True => Atomic::True,
+                        crate::model::Atomic::False => Atomic::False,
+                        crate::model::Atomic::IntAtomic(int_atomic) => {
+                            Atomic::IntAtomic(int_atomic)
+                        }
+                    })
+                    .collect(),
+                consequent: fact
+                    .consequent
+                    .clone()
+                    .map(|proof_atomic| match proof_atomic {
+                        crate::model::Atomic::True => Atomic::True,
+                        crate::model::Atomic::False => Atomic::False,
+                        crate::model::Atomic::IntAtomic(int_atomic) => {
+                            Atomic::IntAtomic(int_atomic)
+                        }
+                    }),
+            })
+        } else {
+            return Err(InvalidDeduction::UnknownInference(*constraint_id));
+        }
+    }
     let verified = checker.verify_deduction(
         deduction
             .premises
@@ -56,40 +89,7 @@ pub fn verify_deduction(
             .cloned()
             .map(Atomic::IntAtomic)
             .collect(),
-        deduction
-            .sequence
-            .iter()
-            .map(|constraint_id| {
-                let fact = facts_in_proof_stage.get(constraint_id).unwrap_or_else(|| {
-                    panic!("Expected fact with id {constraint_id:?} to exist in database")
-                });
-
-                SupportingInference {
-                    premises: fact
-                        .premises
-                        .iter()
-                        .cloned()
-                        .map(|proof_atomic| match proof_atomic {
-                            crate::model::Atomic::True => Atomic::True,
-                            crate::model::Atomic::False => Atomic::False,
-                            crate::model::Atomic::IntAtomic(int_atomic) => {
-                                Atomic::IntAtomic(int_atomic)
-                            }
-                        })
-                        .collect(),
-                    consequent: fact
-                        .consequent
-                        .clone()
-                        .map(|proof_atomic| match proof_atomic {
-                            crate::model::Atomic::True => Atomic::True,
-                            crate::model::Atomic::False => Atomic::False,
-                            crate::model::Atomic::IntAtomic(int_atomic) => {
-                                Atomic::IntAtomic(int_atomic)
-                            }
-                        }),
-                }
-            })
-            .collect(),
+        inferences,
     );
 
     if verified {
