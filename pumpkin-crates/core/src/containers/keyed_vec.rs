@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+sse std::marker::PhantomData;
 use std::ops::Index;
 use std::ops::IndexMut;
 
@@ -48,6 +48,13 @@ impl<Key: StorageKey, Value> KeyedVec<Key, Value> {
 
     pub fn get_mut(&mut self, key: Key) -> Option<&mut Value> {
         self.elements.get_mut(key.index())
+    }
+
+    pub fn pop(&mut self) -> Option<(Key, Value)> {
+        self.elements.pop().map(|value| {
+            let key = Key::create_from_index(self.elements.len());
+            (key, value)
+        })
     }
 
     pub fn len(&self) -> usize {
