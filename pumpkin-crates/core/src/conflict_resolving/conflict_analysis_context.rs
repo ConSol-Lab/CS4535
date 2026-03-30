@@ -29,6 +29,7 @@ use crate::engine::constraint_satisfaction_solver::CSPSolverState;
 use crate::engine::constraint_satisfaction_solver::NogoodLabel;
 use crate::engine::predicates::predicate::Predicate;
 use crate::engine::predicates::predicate::PredicateType;
+use crate::engine::reason;
 use crate::predicate;
 use crate::predicates::PropositionalConjunction;
 use crate::proof::ConstraintTag;
@@ -433,16 +434,19 @@ impl ConflictAnalysisContext<'_> {
         unit_nogood_inference_codes: &HashMap<Predicate, InferenceCode>,
         state: &mut State,
     ) -> Vec<Predicate> {
-        let mut reason_buffer = Vec::new();
+        let mut reason_buffer: Vec<Predicate> = Vec::default();
 
-        let trail_index =
+        let inference_code =
             state.get_propagation_reason(predicate, &mut reason_buffer, current_nogood);
 
-        if let Some(trail_index) = trail_index {
+        if inference_code.is_some() {
+            let trail_index = state.trail_position(predicate).expect(
+                "an inference code is only present if the propagated predicate is on the trail",
+            );
             let trail_entry = state.assignments.get_trail_entry(trail_index);
-            let (reason_ref, inference_code) = trail_entry
-                .reason
-                .expect("Cannot be a null reason for propagation.");
+            let Some((reason_ref, inference_code)) = trail_entry.reason else {
+                return reason_buffer;
+            };
 
             let propagator_id = state.reason_store.get_propagator(reason_ref);
 

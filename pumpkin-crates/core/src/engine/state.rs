@@ -871,7 +871,7 @@ impl State {
         predicate: Predicate,
         reason_buffer: &mut (impl Extend<Predicate> + AsRef<[Predicate]>),
         current_nogood: CurrentNogood<'_>,
-    ) -> Option<usize> {
+    ) -> Option<InferenceCode> {
         // TODO: this function could be put into the reason store
 
         // Note that this function can only be called with propagations, and never decision
@@ -901,9 +901,7 @@ impl State {
         // We distinguish between three cases:
         // 1) The predicate is explicitly present on the trail.
         if trail_entry.predicate == predicate {
-            let (reason_ref, inference_code) = trail_entry
-                .reason
-                .expect("Cannot be a null reason for propagation.");
+            let (reason_ref, inference_code) = trail_entry.reason?;
 
             let explanation_context = ExplanationContext::new(
                 &self.assignments,
@@ -921,7 +919,7 @@ impl State {
 
             assert!(reason_exists, "reason reference should not be stale");
 
-            Some(trail_position)
+            Some(inference_code)
         }
         // 2) The predicate is true due to a propagation, and not explicitly on the trail.
         // It is necessary to further analyse what was the reason for setting the predicate true.
