@@ -1,6 +1,5 @@
 //! The proof processing facilities to turn a proof scaffold into a full DRCP proof.
 
-use std::collections::HashMap;
 use std::io::BufRead;
 use std::io::Write;
 use std::num::NonZero;
@@ -370,15 +369,11 @@ impl ProofProcessor {
         predicate: Predicate,
     ) -> (Vec<Predicate>, Option<InferenceCode>) {
         let mut reason = vec![];
-        let trail_position =
+        let inference_code =
             self.state
                 .get_propagation_reason(predicate, &mut reason, CurrentNogood::empty());
 
-        (
-            reason.into(),
-            trail_position
-                .map(|trail_position| self.state.inference_code_for_trail_index(trail_position)),
-        )
+        (reason.into(), inference_code)
     }
 
     /// Initialise the state with the deductions from the proof, returning either an error or the
@@ -534,7 +529,7 @@ impl ProofProcessor {
         }
 
         let mut reason_buffer = vec![];
-        let trail_index = self.state.get_propagation_reason(
+        let inference_code = self.state.get_propagation_reason(
             predicate,
             &mut reason_buffer,
             CurrentNogood::empty(),
@@ -548,10 +543,7 @@ impl ProofProcessor {
         trace!("  reason = {reason_buffer:?}",);
 
         // We expect the conclusion to be syntactally implied by one of the deductions.
-        let used_constraint_tag = self
-            .state
-            .inference_code_for_trail_index(trail_index.expect("must be due to a propagation"))
-            .tag();
+        let used_constraint_tag = inference_code.expect("must be due to a propagation").tag();
         trace!("  constraint_tag = {}", NonZero::from(used_constraint_tag));
 
         let Some(stack_entry) = deduction_stack

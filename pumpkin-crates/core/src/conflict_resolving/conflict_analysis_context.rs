@@ -29,7 +29,6 @@ use crate::engine::constraint_satisfaction_solver::CSPSolverState;
 use crate::engine::constraint_satisfaction_solver::NogoodLabel;
 use crate::engine::predicates::predicate::Predicate;
 use crate::engine::predicates::predicate::PredicateType;
-use crate::engine::reason;
 use crate::predicate;
 use crate::predicates::PropositionalConjunction;
 use crate::proof::ConstraintTag;
