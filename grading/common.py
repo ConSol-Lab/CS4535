@@ -55,6 +55,7 @@ def passed_all_test_cases(
                 crate,
                 "--features",
                 "pumpkin-core/check-propagations",
+                "--test",
                 test_name,
                 "--",
                 "-Z",
