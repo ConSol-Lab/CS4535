@@ -49,7 +49,7 @@ if __name__ == "__main__":
             f" passed valid: {percentage_passed_valid * 100}%\n\tPercentaged passed invalid:"
             f" {percentage_passed_invalid * 100}%{ENDC}"
         )
-    elif passed_all_test_cases("processor_tests", args.log, crate=TEST_CASES_TO_CRATE["processor_tests"]):
+    elif passed_all_test_cases("processor_tests", args.log, crate=TEST_CASES_TO_CRATE["processor_tests"], timeout=90):
         result += TEST_CASES_WITH_PERCENTAGE["processor_tests"]
 
     print("----------------------------------------------------------------------------------------")
